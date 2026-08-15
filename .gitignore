@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-demo
+*.local
+.DS_Store
+
+# pnpm
+.pnpm-store
+
+# editor
+.vscode/*
+!.vscode/extensions.json
