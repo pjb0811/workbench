@@ -19,10 +19,12 @@ export const injectChildren = (
     }
 
     if (node.children) {
-      return {
-        ...node,
-        children: injectChildren(node.children, targetId, children),
-      };
+      const next = injectChildren(node.children, targetId, children);
+      // `next` is element-wise identical when the target was not in this
+      // subtree; returning `node` then keeps the whole branch referentially
+      // stable, which is what lets React skip it.
+      const changed = next.some((child, i) => child !== node.children![i]);
+      return changed ? { ...node, children: next } : node;
     }
 
     return node;
