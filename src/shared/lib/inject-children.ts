@@ -1,5 +1,3 @@
-import type { WorkbenchNode } from '@/entities/node';
-
 /**
  * Immutably attach lazily-loaded `children` to the node with `targetId`.
  *
@@ -7,12 +5,15 @@ import type { WorkbenchNode } from '@/entities/node';
  * untouched branches keep their original references, so React can skip them.
  * The target's previous `children` are replaced — pass `[]` for a directory
  * that loaded empty (vs. `undefined`, meaning "not loaded", elsewhere).
+ *
+ * Generic over the node type so this stays a domain-agnostic `shared` helper
+ * (no reach up into `entities`); callers keep their concrete node type.
  */
-export const injectChildren = (
-  nodes: WorkbenchNode[],
+export const injectChildren = <T extends { id: string; children?: T[] }>(
+  nodes: T[],
   targetId: string,
-  children: WorkbenchNode[],
-): WorkbenchNode[] =>
+  children: T[],
+): T[] =>
   nodes.map(node => {
     if (node.id === targetId) {
       return { ...node, children };
