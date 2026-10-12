@@ -10,3 +10,26 @@ dist-demo
 # editor
 .vscode/*
 !.vscode/extensions.json
+
+# secrets & local config
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# lockfiles from other package managers
+package-lock.json
+yarn.lock
+
+# test coverage
+coverage
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# logs
+*.log
+npm-debug.log*
