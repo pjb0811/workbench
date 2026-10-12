@@ -2,12 +2,13 @@
 
 Use the Node version in `.nvmrc` and pnpm.
 
-| Command            | Use                                             |
-| ------------------ | ----------------------------------------------- |
-| `pnpm dev`         | Run the demo in `demo/` with Vite               |
-| `pnpm build`       | Build the library bundle and types into `dist/` |
-| `pnpm check-types` | Type-check every project (`tsc -b`)             |
-| `pnpm lint`        | ESLint with no warnings allowed                 |
+| Command                   | Use                                             |
+| ------------------------- | ----------------------------------------------- |
+| `pnpm dev`                | Run the demo in `demo/` with Vite               |
+| `pnpm build`              | Build the library bundle and types into `dist/` |
+| `pnpm check-types`        | Type-check every project (`tsc -b`)             |
+| `pnpm check-declarations` | Check built declarations without demo globals   |
+| `pnpm lint`               | ESLint with no warnings allowed                 |
 
 The pre-commit hook runs `lint-staged`.
 

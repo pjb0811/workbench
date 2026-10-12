@@ -5,7 +5,7 @@
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "types": ["wicg-file-system-access"],
+    "types": [],
     "skipLibCheck": true,
 
     "moduleResolution": "bundler",
@@ -23,5 +23,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "demo"]
+  "include": ["src"]
 }

@@ -37,3 +37,6 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      - name: Check consumer declarations
+        run: pnpm run check-declarations
