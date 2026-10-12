@@ -4,7 +4,18 @@
   "trailingComma": "all",
   "arrowParens": "avoid",
   "printWidth": 80,
-  "importOrder": ["<THIRD_PARTY_MODULES>", "^@/entities", "^@/shared", "^[./]"],
+  "importOrder": [
+    "^react(?:/.*)?$",
+    "<THIRD_PARTY_MODULES>",
+    "^@/app(?:/.*)?$",
+    "^@/pages(?:/.*)?$",
+    "^@/widgets(?:/.*)?$",
+    "^@/features(?:/.*)?$",
+    "^@/entities(?:/.*)?$",
+    "^@/shared(?:/.*)?$",
+    "^@/",
+    "^[./]"
+  ],
   "importOrderSeparation": true,
   "importOrderSortSpecifiers": true,
   "plugins": [

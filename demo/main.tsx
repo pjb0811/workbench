@@ -1,9 +1,11 @@
-import { createFsAdapter } from '@/index';
-import type { WorkbenchAdapter, WorkbenchNode } from '@/index';
 import { StrictMode, useState } from 'react';
+
 import { createRoot } from 'react-dom/client';
 
 import { injectChildren } from '@/shared/lib';
+
+import { createFsAdapter } from '@/index';
+import type { WorkbenchAdapter, WorkbenchNode } from '@/index';
 
 // Temporary verification harness for the fs adapter (#7). The real demo — with
 // adapter switching (fs · http) — lands in #16, and a proper tree/editor UI in
@@ -27,20 +29,29 @@ function FsDemo() {
   };
 
   const expand = async (node: WorkbenchNode) => {
-    if (!adapter) return;
+    if (!adapter) {
+      return;
+    }
+
     const children = await adapter.loadChildren(node);
     setTree(current => injectChildren(current, node.id, children));
   };
 
   const read = async (node: WorkbenchNode) => {
-    if (!adapter) return;
+    if (!adapter) {
+      return;
+    }
+
     setOpenFile(node);
     setContent(await adapter.readFile(node));
     setStatus(`read "${node.name}"`);
   };
 
   const save = async () => {
-    if (!adapter || !openFile) return;
+    if (!adapter || !openFile) {
+      return;
+    }
+
     await adapter.writeFile(openFile, content);
     setStatus(`saved "${openFile.name}"`);
   };
