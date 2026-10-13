@@ -6,6 +6,10 @@ import type { WorkbenchNode } from '@/entities/node';
 
 import { injectChildren } from '@/shared/lib';
 
+import {
+  FileTreeIconContext,
+  type FileTreeIconRenderer,
+} from '../model/icon-renderer';
 import { FileTreeNode, FileTreeRow } from './file-tree-row';
 
 export interface FileTreeProps {
@@ -15,6 +19,8 @@ export interface FileTreeProps {
   selectedId?: string;
   /** Marks the tree as busy and blocks file activation and lazy requests. */
   loading?: boolean;
+  /** Renders decorative icons. No icons or icon assets are provided by default. */
+  renderIcon?: FileTreeIconRenderer;
   /** Called on file activation, never for directories. */
   onSelect?: (node: WorkbenchNode) => void;
   /**
@@ -30,6 +36,7 @@ export const FileTree = ({
   nodes,
   selectedId,
   loading = false,
+  renderIcon,
   onSelect,
   onExpand,
   onError,
@@ -141,34 +148,36 @@ export const FileTree = ({
       style={{ height: '100%', minHeight: 0, width: '100%' }}
     >
       {height > 0 && (
-        <Tree<WorkbenchNode>
-          ref={treeRef}
-          data={snapshot.nodes}
-          idAccessor="id"
-          childrenAccessor={node =>
-            node.kind === 'directory' ? (node.children ?? []) : null
-          }
-          height={height}
-          width="100%"
-          rowHeight={22}
-          indent={16}
-          openByDefault={false}
-          disableDrag
-          disableDrop
-          disableEdit
-          disableMultiSelection
-          disableSelect={loading}
-          selection={selectedId}
-          renderRow={FileTreeRow}
-          onToggle={id => void loadChildren(id)}
-          onActivate={node => {
-            if (!loading && node.data.kind === 'file') {
-              onSelect?.(node.data);
+        <FileTreeIconContext.Provider value={renderIcon}>
+          <Tree<WorkbenchNode>
+            ref={treeRef}
+            data={snapshot.nodes}
+            idAccessor="id"
+            childrenAccessor={node =>
+              node.kind === 'directory' ? (node.children ?? []) : null
             }
-          }}
-        >
-          {FileTreeNode}
-        </Tree>
+            height={height}
+            width="100%"
+            rowHeight={22}
+            indent={16}
+            openByDefault={false}
+            disableDrag
+            disableDrop
+            disableEdit
+            disableMultiSelection
+            disableSelect={loading}
+            selection={selectedId}
+            renderRow={FileTreeRow}
+            onToggle={id => void loadChildren(id)}
+            onActivate={node => {
+              if (!loading && node.data.kind === 'file') {
+                onSelect?.(node.data);
+              }
+            }}
+          >
+            {FileTreeNode}
+          </Tree>
+        </FileTreeIconContext.Provider>
       )}
       {snapshot.error && (
         <div role="alert" data-workbench-tree-error>

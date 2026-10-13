@@ -1,5 +1,6 @@
 import {
   FileTree,
+  type FileTreeIconRenderer,
   Workbench,
   type WorkbenchAdapter,
   type WorkbenchNode,
@@ -16,7 +17,14 @@ adapter.readFile(node);
 adapter.writeFile(node, 'content');
 createHttpAdapter({ treeUrl: '/tree', fileUrl: '/files/{id}' });
 Workbench({});
-FileTree({ nodes: [node], onSelect: selected => adapter.readFile(selected) });
+const renderIcon: FileTreeIconRenderer = ({ node, expanded }) =>
+  `${node.kind}:${expanded}`;
+
+FileTree({
+  nodes: [node],
+  renderIcon,
+  onSelect: selected => adapter.readFile(selected),
+});
 
 // Picker options belong to the demo's ambient types (#29).
 // @ts-expect-error The consumer must not inherit the demo's picker global.
