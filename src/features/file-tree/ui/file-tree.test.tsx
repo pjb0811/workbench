@@ -54,6 +54,114 @@ afterEach(() => {
 });
 
 describe('FileTree', () => {
+  it('renders directory arrows without default icons', () => {
+    const view = render(<FileTree nodes={[directory(), file('index.ts')]} />);
+    const dir = screen.getByRole('treeitem', { name: 'directory' });
+    const arrow = dir.querySelector('[data-workbench-node-arrow]')!;
+
+    expect(arrow.textContent).toBe('›');
+    expect(arrow.getAttribute('aria-hidden')).toBe('true');
+    expect(arrow.hasAttribute('data-open')).toBe(false);
+    expect(dir.getAttribute('aria-expanded')).toBe('false');
+    expect(dir.getAttribute('data-kind')).toBe('directory');
+    expect(
+      view.container.querySelector('[data-workbench-node-icon]'),
+    ).toBeNull();
+    expect(
+      screen
+        .getByRole('treeitem', { name: 'index.ts' })
+        .querySelector('[data-workbench-node-arrow]'),
+    ).toBeNull();
+
+    fireEvent.click(arrow);
+
+    expect(arrow.textContent).toBe('⌄');
+    expect(arrow.getAttribute('data-open')).toBe('true');
+    expect(dir.getAttribute('data-expanded')).toBe('true');
+    expect(dir.getAttribute('data-selected')).toBe('true');
+    expect(dir.getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.click(arrow);
+
+    expect(arrow.textContent).toBe('›');
+    expect(dir.hasAttribute('data-expanded')).toBe(false);
+  });
+
+  it('renders consumer icons and updates them on keyboard expansion', () => {
+    const nodes = [{ ...directory(), children: [file('index.ts')] }];
+    const renderIcon = vi.fn(({ node, expanded }) => (
+      <svg
+        data-testid={`icon-${node.id}`}
+        data-icon={
+          node.kind === 'directory'
+            ? expanded
+              ? 'folder-open'
+              : 'folder'
+            : 'typescript'
+        }
+      >
+        <title>Decorative icon</title>
+      </svg>
+    ));
+
+    render(<FileTree nodes={nodes} renderIcon={renderIcon} />);
+
+    expect(screen.getByTestId('icon-directory').getAttribute('data-icon')).toBe(
+      'folder',
+    );
+    expect(screen.getByRole('treeitem', { name: 'directory' })).toBeTruthy();
+    expect(screen.queryByRole('treeitem', { name: /Decorative/ })).toBeNull();
+    fireEvent.focus(screen.getByRole('tree'));
+    fireEvent.keyDown(screen.getByRole('tree'), { key: 'ArrowRight' });
+
+    expect(screen.getByTestId('icon-directory').getAttribute('data-icon')).toBe(
+      'folder-open',
+    );
+    expect(screen.getByTestId('icon-index.ts').getAttribute('data-icon')).toBe(
+      'typescript',
+    );
+    expect(renderIcon).toHaveBeenCalledWith({
+      node: nodes[0].children[0],
+      expanded: false,
+    });
+    expect(
+      screen
+        .getByRole('treeitem', { name: 'index.ts' })
+        .getAttribute('data-kind'),
+    ).toBe('file');
+  });
+
+  it('updates the icon renderer without resetting expansion and omits null icons', () => {
+    const nodes = [{ ...directory(), children: [file('child')] }];
+    const view = render(
+      <FileTree nodes={nodes} renderIcon={() => 'old-icon'} />,
+    );
+
+    fireEvent.click(screen.getByText('directory'));
+    view.rerender(
+      <FileTree
+        nodes={nodes}
+        renderIcon={({ node }) =>
+          node.kind === 'file' ? null : <svg data-testid="replacement-icon" />
+        }
+      />,
+    );
+
+    expect(screen.queryByText('old-icon')).toBeNull();
+    expect(screen.getByTestId('replacement-icon')).toBeTruthy();
+    expect(screen.getByText('child')).toBeTruthy();
+    expect(
+      view.container.querySelectorAll('[data-workbench-node-icon]'),
+    ).toHaveLength(1);
+
+    view.rerender(<FileTree nodes={nodes} />);
+
+    expect(
+      view.container.querySelector('[data-workbench-node-icon]'),
+    ).toBeNull();
+    expect(screen.getByText('child')).toBeTruthy();
+  });
+
   it('virtualizes 10,000 files and updates its viewport on resize', async () => {
     const nodes = Array.from({ length: 10_000 }, (_, index) =>
       file(`file-${index}`),
