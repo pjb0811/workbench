@@ -8,8 +8,9 @@ export type {
   FileTreeIconRenderer,
 } from '@/features/file-tree';
 
-export { detectLanguage } from '@/features/file-editor';
+export { FileEditor, detectLanguage } from '@/features/file-editor';
 export type {
+  FileEditorProps,
   WorkbenchEditorLanguage,
   WorkbenchEditorProps,
   WorkbenchEditorRenderer,

@@ -1,4 +1,5 @@
 import {
+  FileEditor,
   FileTree,
   type FileTreeIconRenderer,
   Workbench,
@@ -43,6 +44,12 @@ renderEditor({
   readOnly: false,
   theme: 'dark',
   onChange: content => adapter.writeFile(node, content),
+});
+FileEditor({
+  filename: node.name,
+  content: 'content',
+  onChange: content => adapter.writeFile(node, content),
+  renderEditor,
 });
 
 // Picker options belong to the demo's ambient types (#29).
