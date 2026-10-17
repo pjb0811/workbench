@@ -12,6 +12,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./code-editor": {
+      "types": "./dist/code-editor.d.ts",
+      "import": "./dist/code-editor.js",
+      "require": "./dist/code-editor.cjs"
     }
   },
   "files": [
@@ -30,11 +35,41 @@
     "prepare": "husky"
   },
   "peerDependencies": {
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/merge": "^6.12.2",
+    "@jbpark/ui-kit": "^10.4.0",
+    "@uiw/codemirror-theme-vscode": "^4.25.11",
+    "@uiw/react-codemirror": "^4.25.11",
+    "codemirror": "^6.0.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
+  "peerDependenciesMeta": {
+    "@codemirror/lang-javascript": {
+      "optional": true
+    },
+    "@codemirror/merge": {
+      "optional": true
+    },
+    "@jbpark/ui-kit": {
+      "optional": true
+    },
+    "@uiw/codemirror-theme-vscode": {
+      "optional": true
+    },
+    "@uiw/react-codemirror": {
+      "optional": true
+    },
+    "codemirror": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/merge": "^6.12.2",
     "@eslint/js": "^10.0.1",
+    "@jbpark/ui-kit": "^10.4.0",
     "@microsoft/api-extractor": "^7.58.12",
     "@testing-library/react": "^16.3.3",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
@@ -42,7 +77,10 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@types/wicg-file-system-access": "^2023.10.7",
+    "@uiw/codemirror-theme-vscode": "^4.25.12",
+    "@uiw/react-codemirror": "^4.25.12",
     "@vitejs/plugin-react": "^6.0.5",
+    "codemirror": "^6.0.2",
     "eslint": "^10.8.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.5",

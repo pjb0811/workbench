@@ -1,11 +1,15 @@
 import {
+  FileEditor,
   FileTree,
   type FileTreeIconRenderer,
   Workbench,
   type WorkbenchAdapter,
+  type WorkbenchEditorLanguage,
+  type WorkbenchEditorRenderer,
   type WorkbenchNode,
   createFsAdapter,
   createHttpAdapter,
+  detectLanguage,
 } from 'workbench';
 
 declare const directory: FileSystemDirectoryHandle;
@@ -24,6 +28,28 @@ FileTree({
   nodes: [node],
   renderIcon,
   onSelect: selected => adapter.readFile(selected),
+});
+
+const language: WorkbenchEditorLanguage = detectLanguage(node.name);
+const renderEditor: WorkbenchEditorRenderer = ({
+  content,
+  language,
+  readOnly,
+}) => `${language}:${readOnly}:${content}`;
+
+renderEditor({
+  filename: node.name,
+  content: 'content',
+  language,
+  readOnly: false,
+  theme: 'dark',
+  onChange: content => adapter.writeFile(node, content),
+});
+FileEditor({
+  filename: node.name,
+  content: 'content',
+  onChange: content => adapter.writeFile(node, content),
+  renderEditor,
 });
 
 // Picker options belong to the demo's ambient types (#29).

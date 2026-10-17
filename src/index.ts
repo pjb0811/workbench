@@ -8,6 +8,14 @@ export type {
   FileTreeIconRenderer,
 } from '@/features/file-tree';
 
+export { FileEditor, detectLanguage } from '@/features/file-editor';
+export type {
+  FileEditorProps,
+  WorkbenchEditorLanguage,
+  WorkbenchEditorProps,
+  WorkbenchEditorRenderer,
+} from '@/features/file-editor';
+
 export { createFsAdapter } from '@/features/fs-adapter';
 export { createHttpAdapter } from '@/features/http-adapter';
 export type { HttpAdapterOptions } from '@/features/http-adapter';
