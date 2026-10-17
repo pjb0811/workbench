@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { useResizeObserver } from '@jbpark/use-hooks';
 import { Tree, type TreeApi } from 'react-arborist';
 
 import type { WorkbenchNode } from '@/entities/node';
@@ -41,36 +42,22 @@ export const FileTree = ({
   onExpand,
   onError,
 }: FileTreeProps) => {
-  const containerRef = useRef<HTMLElement>(null);
+  const [containerRef, size] = useResizeObserver<HTMLElement>();
+
   const treeRef = useRef<TreeApi<WorkbenchNode>>(null);
   const requestsRef = useRef(new Set<string>());
   const generationRef = useRef(0);
-  const [height, setHeight] = useState(0);
   const [snapshot, setSnapshot] = useState<{
     source: WorkbenchNode[];
     nodes: WorkbenchNode[];
     error?: Error;
   }>({ source: nodes, nodes });
 
+  const height = Math.max(0, size?.height ?? 0);
+
   if (snapshot.source !== nodes) {
     setSnapshot({ source: nodes, nodes });
   }
-
-  useEffect(() => {
-    const container = containerRef.current;
-
-    if (!container) {
-      return;
-    }
-
-    const observer = new ResizeObserver(entries => {
-      setHeight(Math.max(0, entries[0]?.contentRect.height ?? 0));
-    });
-
-    observer.observe(container);
-
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     const requests = requestsRef.current;
