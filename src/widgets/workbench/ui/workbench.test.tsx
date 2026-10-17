@@ -385,6 +385,37 @@ describe('Workbench', () => {
       ).toBeTruthy();
     });
 
+    it('reorders tabs by dragging one onto another', async () => {
+      const adapter = createAdapter({ 'a.ts': 'a', 'b.ts': 'b', 'c.ts': 'c' });
+
+      render(<Workbench adapter={adapter} renderEditor={renderTextarea} />);
+
+      await openFile('a.ts');
+      await openFile('b.ts');
+      await openFile('c.ts');
+
+      const dataTransfer = {
+        setData: vi.fn(),
+        effectAllowed: '',
+        dropEffect: '',
+      };
+
+      fireEvent.dragStart(tabFor('a.ts'), { dataTransfer });
+
+      expect(tabFor('a.ts').getAttribute('data-dragging')).toBe('true');
+
+      fireEvent.dragOver(tabFor('c.ts'), { dataTransfer });
+
+      expect(tabFor('c.ts').getAttribute('data-drop-target')).toBe('true');
+
+      fireEvent.drop(tabFor('c.ts'), { dataTransfer });
+
+      expect(tabNames()).toEqual(['b.ts', 'c.ts', 'a.ts']);
+      expect(activeTab()).toBe('c.ts');
+      expect(tabFor('a.ts').hasAttribute('data-dragging')).toBe(false);
+      expect(tabFor('c.ts').hasAttribute('data-drop-target')).toBe(false);
+    });
+
     it('labels the close button of a dirty tab and renders tab icons', async () => {
       const adapter = createAdapter({ 'a.ts': 'a' });
 

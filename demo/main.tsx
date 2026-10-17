@@ -94,7 +94,8 @@ function Demo() {
             border: 1px solid #ccc; border-bottom: none; background: #f4f4f4;
           }
           [data-workbench-tab][data-active] { background: #fff; }
-          [data-workbench-tab][data-dragging] { opacity: 0.6; z-index: 1; }
+          [data-workbench-tab][data-dragging] { opacity: 0.5; }
+          [data-workbench-tab][data-drop-target] { box-shadow: inset 2px 0 #1a73e8; }
           [data-workbench-tab] button { border: none; background: none; }
           [data-workbench-tab][data-dirty] [data-workbench-tab-name]::after {
             content: ' ●';
