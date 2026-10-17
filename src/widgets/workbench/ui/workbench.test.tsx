@@ -282,6 +282,131 @@ describe('Workbench', () => {
     expect(screen.getByText('new.ts')).toBeTruthy();
   });
 
+  describe('tabs', () => {
+    const tabNames = () =>
+      screen.getAllByRole('tab').map(tab => tab.textContent);
+    const activeTab = () =>
+      screen
+        .getAllByRole('tab')
+        .find(tab => tab.getAttribute('aria-selected') === 'true')?.textContent;
+    const tabFor = (name: string) =>
+      screen.getByRole('tab', { name }).closest('[data-workbench-tab]')!;
+
+    it('keeps each tab open with its own content and dirty state', async () => {
+      const adapter = createAdapter({ 'a.ts': 'a', 'b.ts': 'b' });
+
+      render(<Workbench adapter={adapter} renderEditor={renderTextarea} />);
+
+      fireEvent.change(await openFile('a.ts'), { target: { value: 'a2' } });
+      await openFile('b.ts');
+
+      expect(tabNames()).toEqual(['a.ts', 'b.ts']);
+      expect(activeTab()).toBe('b.ts');
+      expect(tabFor('a.ts').getAttribute('data-dirty')).toBe('true');
+      expect(tabFor('b.ts').hasAttribute('data-dirty')).toBe(false);
+      expect(tabFor('b.ts').getAttribute('data-active')).toBe('true');
+
+      fireEvent.click(screen.getByRole('tab', { name: 'a.ts' }));
+
+      expect(screen.getByRole('textbox', { name: 'a.ts' })).toHaveProperty(
+        'value',
+        'a2',
+      );
+      expect(saveButton().getAttribute('data-dirty')).toBe('true');
+    });
+
+    it('activates an open file from the tree without reading it again', async () => {
+      const adapter = createAdapter({ 'a.ts': 'a', 'b.ts': 'b' });
+
+      render(<Workbench adapter={adapter} renderEditor={renderTextarea} />);
+
+      fireEvent.change(await openFile('a.ts'), { target: { value: 'a2' } });
+      await openFile('b.ts');
+      fireEvent.click(
+        screen.getByText('a.ts', { selector: '[data-workbench-node-name]' }),
+      );
+
+      expect(
+        await screen.findByRole('textbox', { name: 'a.ts' }),
+      ).toHaveProperty('value', 'a2');
+      expect(adapter.readFile).toHaveBeenCalledTimes(2);
+      expect(tabNames()).toEqual(['a.ts', 'b.ts']);
+    });
+
+    it('saves the file of the tab that asked, after switching tabs', async () => {
+      const write = deferred<void>();
+      const adapter = createAdapter(
+        { 'a.ts': 'a', 'b.ts': 'b' },
+        { writeFile: vi.fn(() => write.promise) },
+      );
+
+      render(<Workbench adapter={adapter} renderEditor={renderTextarea} />);
+
+      const a = await openFile('a.ts');
+
+      fireEvent.change(a, { target: { value: 'a2' } });
+      fireEvent.keyDown(a, { key: 's', ctrlKey: true });
+      await openFile('b.ts');
+      await act(async () => write.resolve());
+
+      expect(adapter.writeFile).toHaveBeenCalledExactlyOnceWith(
+        file('a.ts'),
+        'a2',
+      );
+      expect(tabFor('a.ts').hasAttribute('data-dirty')).toBe(false);
+      expect(activeTab()).toBe('b.ts');
+    });
+
+    it('activates the right neighbor, then the left, when the active tab closes', async () => {
+      const adapter = createAdapter({ 'a.ts': 'a', 'b.ts': 'b', 'c.ts': 'c' });
+      const view = render(
+        <Workbench adapter={adapter} renderEditor={renderTextarea} />,
+      );
+
+      await openFile('a.ts');
+      await openFile('b.ts');
+      await openFile('c.ts');
+      fireEvent.click(screen.getByRole('tab', { name: 'b.ts' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Close b.ts' }));
+
+      expect(tabNames()).toEqual(['a.ts', 'c.ts']);
+      expect(activeTab()).toBe('c.ts');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close c.ts' }));
+
+      expect(activeTab()).toBe('a.ts');
+      expect(screen.getByRole('textbox', { name: 'a.ts' })).toBeTruthy();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close a.ts' }));
+
+      expect(screen.queryByRole('tablist')).toBeNull();
+      expect(
+        view.container.querySelector('[data-workbench-empty]'),
+      ).toBeTruthy();
+    });
+
+    it('labels the close button of a dirty tab and renders tab icons', async () => {
+      const adapter = createAdapter({ 'a.ts': 'a' });
+
+      render(
+        <Workbench
+          adapter={adapter}
+          renderEditor={renderTextarea}
+          renderIcon={({ node }) => <i data-testid={`icon-${node.id}`} />}
+        />,
+      );
+
+      fireEvent.change(await openFile('a.ts'), { target: { value: 'a2' } });
+
+      expect(
+        screen.getByRole('button', { name: 'Close a.ts (unsaved)' }),
+      ).toBeTruthy();
+      expect(
+        tabFor('a.ts').querySelector('[data-workbench-tab-icon] i'),
+      ).toBeTruthy();
+    });
+  });
+
   describe('read-only', () => {
     it('opens files without a save button, edits or writes', async () => {
       const adapter = createAdapter({ 'a.ts': 'a' });
