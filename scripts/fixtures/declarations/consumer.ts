@@ -20,7 +20,6 @@ const node: WorkbenchNode = { id: 'file', name: 'file.txt', kind: 'file' };
 adapter.readFile(node);
 adapter.writeFile(node, 'content');
 createHttpAdapter({ treeUrl: '/tree', fileUrl: '/files/{id}' });
-Workbench({});
 const renderIcon: FileTreeIconRenderer = ({ node, expanded }) =>
   `${node.kind}:${expanded}`;
 
@@ -45,6 +44,7 @@ renderEditor({
   theme: 'dark',
   onChange: content => adapter.writeFile(node, content),
 });
+Workbench({ adapter, renderEditor, readOnly: true, renderIcon });
 FileEditor({
   filename: node.name,
   content: 'content',

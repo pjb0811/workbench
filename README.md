@@ -1,5 +1,74 @@
 # workbench
 
+## Workbench
+
+`Workbench` combines the file tree and the file editor around one adapter. It
+loads the tree, opens a file when it is selected, tracks unsaved edits, and
+saves through the adapter.
+
+```tsx
+import { Workbench } from 'workbench';
+import { codeEditorRenderer } from 'workbench/code-editor';
+
+<Workbench adapter={adapter} renderEditor={codeEditorRenderer} />;
+```
+
+| Prop           | Type                      | Meaning                                                             |
+| -------------- | ------------------------- | ------------------------------------------------------------------- |
+| `adapter`      | `WorkbenchAdapter`        | Data source. Replacing it reloads the tree and closes the open file |
+| `renderEditor` | `WorkbenchEditorRenderer` | Editor to render; see [File editor](#file-editor)                   |
+| `readOnly`     | `boolean`                 | View files without editing; defaults to `false`                     |
+| `renderIcon`   | `FileTreeIconRenderer`    | Tree icons; see [File tree icons](#file-tree-icons)                 |
+
+- **Saving.** The save button is enabled while the open file has unsaved
+  edits, and Cmd/Ctrl+S in the editor saves the editor's latest text through
+  the same path. A successful `adapter.writeFile` clears the unsaved state; a
+  failed one keeps it and shows the error.
+- **Errors.** Failures from `getTree`, `loadChildren`, `readFile` and
+  `writeFile` show the adapter's message in `[data-workbench-error]` with
+  `role="alert"`. The message is cleared when the next file is opened or saved.
+- **Read-only.** With `readOnly`, files still open, but the editor receives
+  `readOnly: true`, no save button is rendered, edits and save shortcuts are
+  ignored even from an editor that does not honor `readOnly`, and
+  `adapter.writeFile` is never called. Use it for sources that cannot be
+  written, such as `createHttpAdapter`.
+- **Switching files.** Opening another file replaces the open one, and its
+  unsaved edits are discarded. Multiple open files arrive with tabs (#2).
+
+Workbench ships no CSS. The tree only renders with a bounded height, so give
+the widget a height and lay out its regions yourself, for example:
+
+```css
+[data-workbench] {
+  display: flex;
+  height: 100%;
+}
+[data-workbench-sidebar] {
+  width: 240px;
+}
+[data-workbench-main] {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+[data-workbench-editor],
+[data-workbench-content] {
+  flex: 1;
+  min-height: 0;
+}
+```
+
+| Selector                          | Meaning                                                      |
+| --------------------------------- | ------------------------------------------------------------ |
+| `[data-workbench]`                | Widget root                                                  |
+| `[data-workbench][data-readonly]` | Read-only widget                                             |
+| `[data-workbench-sidebar]`        | Region that holds the tree                                   |
+| `[data-workbench-main]`           | Region that holds the editor; `aria-busy` while a file opens |
+| `[data-workbench-save]`           | Save button; `data-dirty` while there are unsaved edits      |
+| `[data-workbench-error]`          | Error message                                                |
+| `[data-workbench-empty]`          | Shown while no file is open                                  |
+
 ## File tree icons
 
 `FileTree` accepts a `renderIcon` callback with `{ node, expanded }`. It renders

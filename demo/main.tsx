@@ -2,128 +2,105 @@ import { StrictMode, useState } from 'react';
 
 import { createRoot } from 'react-dom/client';
 
-import { injectChildren } from '@/shared/lib';
-
-import { createFsAdapter } from '@/index';
+import { codeEditorRenderer } from '@/code-editor';
+import { Workbench, createFsAdapter } from '@/index';
 import type { WorkbenchAdapter, WorkbenchNode } from '@/index';
 
-// Temporary verification harness for the fs adapter (#7). The real demo — with
-// adapter switching (fs · http) — lands in #16, and a proper tree/editor UI in
-// #9–#12; this just proves createFsAdapter round-trips against a real folder:
-// open → tree → expand → read → edit → save.
-function FsDemo() {
-  const [adapter, setAdapter] = useState<WorkbenchAdapter | null>(null);
-  const [tree, setTree] = useState<WorkbenchNode[]>([]);
-  const [openFile, setOpenFile] = useState<WorkbenchNode | null>(null);
-  const [content, setContent] = useState('');
-  const [status, setStatus] = useState('');
+// Temporary harness for the Workbench widget (#12). The real demo, with
+// adapter switching and styling, lands in #16.
+
+const sampleFiles: Record<string, string> = {
+  'README.md': '# Sample\n\nOpen a file from the tree and edit it.\n',
+  'src/index.ts': 'export const greet = (name: string) => `Hello, ${name}`;\n',
+  'src/app.tsx': 'export const App = () => <h1>Hello</h1>;\n',
+};
+
+// Keeps edits in memory so the demo works before a folder is opened.
+const createSampleAdapter = (): WorkbenchAdapter => {
+  const files = { ...sampleFiles };
+  const toNode = (id: string): WorkbenchNode => ({
+    id,
+    name: id.split('/').at(-1)!,
+    kind: 'file',
+  });
+
+  return {
+    getTree: async () => [
+      { id: 'src', name: 'src', kind: 'directory' },
+      toNode('README.md'),
+    ],
+    loadChildren: async node =>
+      Object.keys(files)
+        .filter(id => id.startsWith(`${node.id}/`))
+        .map(toNode),
+    readFile: async node => files[node.id],
+    writeFile: async (node, content) => {
+      files[node.id] = content;
+    },
+  };
+};
+
+function Demo() {
+  const [adapter, setAdapter] = useState(createSampleAdapter);
+  const [readOnly, setReadOnly] = useState(false);
 
   const openFolder = async () => {
-    const dirHandle = await window.showDirectoryPicker();
-    const next = createFsAdapter(dirHandle);
-    setAdapter(next);
-    setTree(await next.getTree());
-    setOpenFile(null);
-    setContent('');
-    setStatus(`opened "${dirHandle.name}"`);
-  };
-
-  const expand = async (node: WorkbenchNode) => {
-    if (!adapter) {
-      return;
-    }
-
-    const children = await adapter.loadChildren(node);
-    setTree(current => injectChildren(current, node.id, children));
-  };
-
-  const read = async (node: WorkbenchNode) => {
-    if (!adapter) {
-      return;
-    }
-
-    setOpenFile(node);
-    setContent(await adapter.readFile(node));
-    setStatus(`read "${node.name}"`);
-  };
-
-  const save = async () => {
-    if (!adapter || !openFile) {
-      return;
-    }
-
-    await adapter.writeFile(openFile, content);
-    setStatus(`saved "${openFile.name}"`);
+    setAdapter(createFsAdapter(await window.showDirectoryPicker()));
   };
 
   return (
-    <div style={{ fontFamily: 'monospace', padding: 16 }}>
-      <button onClick={openFolder}>폴더 열기</button> <span>{status}</span>
-      <div style={{ display: 'flex', gap: 24, marginTop: 12 }}>
-        <ul style={{ minWidth: 240 }}>
-          {tree.map(node => (
-            <TreeRow
-              key={node.id}
-              node={node}
-              onExpand={expand}
-              onRead={read}
-            />
-          ))}
-        </ul>
-        {openFile && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <strong>{openFile.name}</strong>
-            <textarea
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              rows={20}
-              cols={60}
-            />
-            <button onClick={save}>저장</button>
-          </div>
-        )}
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        height: '100vh',
+        padding: 16,
+        boxSizing: 'border-box',
+        fontFamily: 'system-ui, sans-serif',
+      }}
+    >
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" onClick={openFolder}>
+          Open folder
+        </button>
+        <label>
+          <input
+            type="checkbox"
+            checked={readOnly}
+            onChange={event => setReadOnly(event.target.checked)}
+          />{' '}
+          Read-only
+        </label>
+      </div>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <style>{`
+          [data-workbench] { display: flex; gap: 16px; height: 100%; }
+          [data-workbench-sidebar] { width: 240px; flex: none; }
+          [data-workbench-main] {
+            display: flex; flex-direction: column; gap: 8px;
+            flex: 1; min-width: 0;
+          }
+          [data-workbench-save] { align-self: flex-start; }
+          [data-workbench-error] { color: crimson; }
+          [data-workbench-editor], [data-workbench-content] {
+            flex: 1; min-height: 0;
+          }
+          [data-workbench-editor] { display: flex; border: 1px solid #ccc; }
+          [data-workbench-node][data-selected] { background: #e8f0fe; }
+        `}</style>
+        <Workbench
+          adapter={adapter}
+          renderEditor={codeEditorRenderer}
+          readOnly={readOnly}
+        />
       </div>
     </div>
   );
 }
 
-function TreeRow({
-  node,
-  onExpand,
-  onRead,
-}: {
-  node: WorkbenchNode;
-  onExpand: (node: WorkbenchNode) => void;
-  onRead: (node: WorkbenchNode) => void;
-}) {
-  const isDirectory = node.kind === 'directory';
-
-  return (
-    <li>
-      <span
-        style={{ cursor: 'pointer' }}
-        onClick={() => (isDirectory ? onExpand(node) : onRead(node))}
-      >
-        {isDirectory ? '📁' : '📄'} {node.name}
-      </span>
-      {node.children && node.children.length > 0 && (
-        <ul style={{ paddingLeft: 16 }}>
-          {node.children.map(child => (
-            <TreeRow
-              key={child.id}
-              node={child}
-              onExpand={onExpand}
-              onRead={onRead}
-            />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-}
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <FsDemo />
+    <Demo />
   </StrictMode>,
 );
