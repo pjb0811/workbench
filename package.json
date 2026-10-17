@@ -30,8 +30,8 @@
     "prepare": "husky"
   },
   "peerDependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -76,6 +76,7 @@
     ]
   },
   "dependencies": {
+    "@jbpark/use-hooks": "^4.6.0",
     "react-arborist": "^4.0.1"
   }
 }

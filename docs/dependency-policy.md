@@ -19,6 +19,10 @@ version and the global wiring of. They are installed by the consumer and are
 | `monaco-editor`        | Multi-MB, and consumers routinely run their own instance. Two copies means two TypeScript language services, each with its own diagnostics settings |
 | `@monaco-editor/react` | Binds to the `monaco-editor` instance above; splitting them across bundles would defeat the point                                                   |
 
+The React range starts at `^19.1.1` because `@jbpark/use-hooks` declares that
+peer range; a lower floor would give React 19.0.x consumers a peer warning
+(#48).
+
 Monaco is declared `peerDependenciesMeta.optional` when it lands (#11): the
 file tree works without an editor, and a consumer that only renders the tree
 should not be nagged into installing Monaco.
@@ -32,6 +36,7 @@ them normally.
 | Package                                                    | Arrives with |
 | ---------------------------------------------------------- | ------------ |
 | `react-arborist`                                           | #9           |
+| `@jbpark/use-hooks`                                        | #48          |
 | `react-resizable-panels`                                   | #13          |
 | `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` | #2           |
 
