@@ -19,10 +19,10 @@ const pkg = JSON.parse(
 const peerDependencies = Object.keys(pkg.peerDependencies ?? {});
 
 // Every peer dependency is external, and so is every subpath of one:
-// `react/jsx-runtime` and `monaco-editor/esm/vs/.../ts.worker` are entry
-// points a literal package-name list would miss, which is how a multi-MB
-// worker ends up inlined. Derived from package.json rather than duplicated
-// here, so the two can't drift. See docs/dependency-policy.md.
+// `react/jsx-runtime` and `@jbpark/ui-kit/CodeEditor` are entry points a
+// literal package-name list would miss, which is how a peer ends up inlined.
+// Derived from package.json rather than duplicated here, so the two can't
+// drift. See docs/dependency-policy.md.
 const isExternal = (id: string) =>
   peerDependencies.some(name => id === name || id.startsWith(`${name}/`));
 
@@ -42,9 +42,17 @@ export default defineConfig({
   build: isProduction
     ? {
         lib: {
-          entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
+          // `code-editor` is its own entry so that importing the main entry
+          // never resolves the optional editor peers.
+          entry: {
+            index: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
+            'code-editor': fileURLToPath(
+              new URL('./src/code-editor.ts', import.meta.url),
+            ),
+          },
           formats: ['es', 'cjs'],
-          fileName: format => (format === 'es' ? 'index.js' : 'index.cjs'),
+          fileName: (format, entryName) =>
+            `${entryName}.${format === 'es' ? 'js' : 'cjs'}`,
         },
         rollupOptions: {
           external: isExternal,

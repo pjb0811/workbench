@@ -1,2 +1,4 @@
 allowBuilds:
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@jbpark/ui-kit@10.4.0'

@@ -17,6 +17,17 @@ if (forbidden.test(declarations)) {
   );
 }
 
+// The main entry must type-check without the optional editor peers, which
+// only `workbench/code-editor` may reference.
+const editorPeerImport =
+  /from ['"](?:@jbpark\/ui-kit|@uiw\/|@codemirror\/|codemirror['"/])/;
+
+if (editorPeerImport.test(declarations)) {
+  throw new Error(
+    'Main entry declarations import an optional editor peer dependency.',
+  );
+}
+
 const scratch = mkdtempSync(join(tmpdir(), 'workbench-declarations-'));
 
 try {

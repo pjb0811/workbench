@@ -13,19 +13,27 @@ Packages a consumer very likely already has, or must be able to control the
 version and the global wiring of. They are installed by the consumer and are
 **never** part of the bundle.
 
-| Package                | Why                                                                                                                                                 |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `react`, `react-dom`   | A second React copy breaks hooks outright                                                                                                           |
-| `monaco-editor`        | Multi-MB, and consumers routinely run their own instance. Two copies means two TypeScript language services, each with its own diagnostics settings |
-| `@monaco-editor/react` | Binds to the `monaco-editor` instance above; splitting them across bundles would defeat the point                                                   |
+| Package                                                                                                                   | Why                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `react`, `react-dom`                                                                                                      | A second React copy breaks hooks outright                                                                                                                                                                                         |
+| `@jbpark/ui-kit`                                                                                                          | Provides `CodeEditor` for `workbench/code-editor` (#11). The consumer usually uses ui-kit already, and two copies would mean two `Config` contexts                                                                                |
+| `@uiw/react-codemirror`, `@uiw/codemirror-theme-vscode`, `@codemirror/lang-javascript`, `@codemirror/merge`, `codemirror` | ui-kit's own optional peers for `CodeEditor`. Declared here as well because ui-kit marks them optional, so nothing else tells the consumer to install them. Two CodeMirror copies break its extensions, which compare by instance |
 
 The React range starts at `^19.1.1` because `@jbpark/use-hooks` declares that
 peer range; a lower floor would give React 19.0.x consumers a peer warning
 (#48).
 
-Monaco is declared `peerDependenciesMeta.optional` when it lands (#11): the
-file tree works without an editor, and a consumer that only renders the tree
-should not be nagged into installing Monaco.
+Every editor package is `peerDependenciesMeta.optional`: the file tree works
+without an editor, and a consumer that only renders the tree or injects its own
+`renderEditor` should not be asked to install them. Only the
+`workbench/code-editor` entry imports them, and the main entry never imports
+that one, so leaving them uninstalled breaks neither resolution nor the build.
+Workbench adds no Monaco packages, workers, CDN loader or global diagnostics
+settings.
+
+Other CodeMirror language packages (`@codemirror/lang-json` and so on) are not
+peers at all. A consumer that wants them installs them and passes their
+extensions to `createCodeEditorRenderer`.
 
 ### 2. `dependencies` — the library owns it
 
@@ -61,20 +69,19 @@ is still demonstrated — it is just not the library's decision.
 dependency is a one-line change in `package.json` and nothing else.
 
 Subpaths are matched by prefix, not by exact name: `react/jsx-runtime` and
-`monaco-editor/esm/vs/language/typescript/ts.worker` are both external because
-their package name is. A bare string list would miss them and silently inline
-the worker entry points.
+`@jbpark/ui-kit/CodeEditor` are both external because their package name is. A
+bare string list would miss them and silently inline the subpath.
 
 ## No side effects at module scope
 
 Nothing in `src/` may mutate global state as a consequence of being imported.
-Concretely, that rules out writing `window.MonacoEnvironment`, calling
-`loader.config({ monaco })`, or registering an icon collection at module
-scope. Anything of that shape belongs in an initializer the consumer calls.
+Concretely, that rules out configuring an editor engine globally or
+registering an icon collection at module scope. Anything of that shape belongs
+in an initializer the consumer calls.
 
-Importing a file tree must not reconfigure a consumer's existing Monaco
-instance. This also makes the `sideEffects: false` declaration tracked in #28
-honest rather than a lie a bundler will act on.
+Importing a file tree must not reconfigure an editor the consumer already runs.
+This also makes the `sideEffects: false` declaration tracked in #28 honest
+rather than a lie a bundler will act on.
 
 ## Verifying a change
 
@@ -89,6 +96,9 @@ node -e "console.log((require('fs').statSync('dist/index.js').size / 1024).toFix
 # Externals appear as imports, never as inlined module bodies.
 node -e "console.log(require('fs').readFileSync('dist/index.js', 'utf8').match(/^import .*/gm))"
 
-# 0 once Monaco is external and its setup is opt-in.
-grep -c "MonacoEnvironment" dist/index.js
+# 0: the main entry never imports an editor peer.
+grep -c -E "@jbpark/ui-kit|codemirror" dist/index.js
 ```
+
+`pnpm check-declarations` also fails when `dist/index.d.ts` imports an editor
+peer.
