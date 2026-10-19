@@ -282,6 +282,35 @@ describe('Workbench', () => {
     expect(screen.getByText('new.ts')).toBeTruthy();
   });
 
+  it('renders a resize handle that controls the sidebar width', async () => {
+    const view = render(
+      <Workbench
+        adapter={createAdapter({ 'a.ts': 'a' })}
+        renderEditor={renderTextarea}
+      />,
+    );
+
+    await screen.findByText('a.ts');
+
+    const handle = screen.getByRole('separator', { name: 'Resize file tree' });
+    const sidebar = view.container.querySelector<HTMLElement>(
+      '[data-workbench-sidebar]',
+    )!;
+
+    expect(handle.hasAttribute('data-workbench-resize-handle')).toBe(true);
+    expect(handle.getAttribute('aria-controls')).toBe(sidebar.id);
+    expect(sidebar.style.width).toBe('20%');
+
+    fireEvent.keyDown(handle, { key: 'End' });
+
+    expect(sidebar.style.width).toBe('50%');
+    expect(handle.getAttribute('aria-valuenow')).toBe('50');
+
+    fireEvent.keyDown(handle, { key: 'Home' });
+
+    expect(sidebar.style.width).toBe('15%');
+  });
+
   describe('tabs', () => {
     const tabNames = () =>
       screen.getAllByRole('tab').map(tab => tab.textContent);

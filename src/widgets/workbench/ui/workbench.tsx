@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import {
   FileEditor,
@@ -8,6 +8,8 @@ import { FileTree, type FileTreeIconRenderer } from '@/features/file-tree';
 
 import type { WorkbenchAdapter } from '@/entities/adapter';
 import type { WorkbenchNode } from '@/entities/node';
+
+import { useSplitResize } from '@/shared/lib';
 
 import { type OpenTab, closeTab, isDirty, moveTab } from '../model/open-tabs';
 import { FileTabs } from './file-tabs';
@@ -51,6 +53,9 @@ const createSession = (adapter: WorkbenchAdapter): Session => ({
   savingIds: [],
 });
 
+// Sidebar width limits, in percent of the widget width.
+const SIDEBAR_SIZE = { defaultSize: 20, minSize: 15, maxSize: 50 };
+
 const toMessage = (reason: unknown) =>
   reason instanceof Error ? reason.message : String(reason);
 
@@ -62,6 +67,8 @@ export const Workbench = ({
 }: WorkbenchProps) => {
   const [session, setSession] = useState(() => createSession(adapter));
   const savingRef = useRef(new Set<string>());
+  const sidebarId = useId();
+  const sidebar = useSplitResize(SIDEBAR_SIZE);
 
   if (session.adapter !== adapter) {
     setSession(createSession(adapter));
@@ -219,8 +226,19 @@ export const Workbench = ({
   const isActiveDirty = activeTab !== undefined && isDirty(activeTab);
 
   return (
-    <div data-workbench data-readonly={readOnly || undefined}>
-      <div data-workbench-sidebar>
+    <div
+      ref={sidebar.containerRef}
+      data-workbench
+      data-readonly={readOnly || undefined}
+      data-resizing={sidebar.isResizing || undefined}
+    >
+      <div
+        id={sidebarId}
+        data-workbench-sidebar
+        // The width is the resize state itself, so it is set here rather than
+        // left to consumer CSS.
+        style={{ width: `${sidebar.size}%`, flexShrink: 0 }}
+      >
         <FileTree
           nodes={session.nodes}
           selectedId={session.openingId ?? activeTabId}
@@ -233,6 +251,15 @@ export const Workbench = ({
           }
         />
       </div>
+      <div
+        {...sidebar.separatorProps}
+        aria-label="Resize file tree"
+        aria-controls={sidebarId}
+        data-workbench-resize-handle
+        data-dragging={sidebar.isResizing || undefined}
+        // Without it, a touch drag scrolls the page instead of resizing.
+        style={{ touchAction: 'none' }}
+      />
       <div data-workbench-main aria-busy={session.openingId !== undefined}>
         {tabs.length > 0 && (
           <FileTabs
