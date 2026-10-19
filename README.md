@@ -83,7 +83,8 @@ const renderIcon: FileTreeIconRenderer = ({ node, expanded }) => {
 
 Bundle icon assets in the consuming app to support offline rendering. Workbench
 does not register icon collections, fetch assets, or include an icon dependency.
-The VSCode icon mapping for the demo is tracked in #16.
+The demo maps names to VSCode icons in `demo/file-icon.tsx`, registering only
+the icons it uses from `@iconify-json/vscode-icons`.
 
 Directory rows include a disclosure arrow. Clicking it or the directory name
 toggles the directory; the tree also supports keyboard expansion. Icons and
