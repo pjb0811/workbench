@@ -4,6 +4,7 @@ import {
   type FileTreeIconRenderer,
   Workbench,
   type WorkbenchAdapter,
+  type WorkbenchColorTheme,
   type WorkbenchEditorLanguage,
   type WorkbenchEditorRenderer,
   type WorkbenchNode,
@@ -44,7 +45,9 @@ renderEditor({
   theme: 'dark',
   onChange: content => adapter.writeFile(node, content),
 });
-Workbench({ adapter, renderEditor, readOnly: true, renderIcon });
+const colorTheme: WorkbenchColorTheme = 'light';
+
+Workbench({ adapter, renderEditor, readOnly: true, renderIcon, colorTheme });
 FileEditor({
   filename: node.name,
   content: 'content',

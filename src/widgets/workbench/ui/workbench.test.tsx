@@ -311,6 +311,46 @@ describe('Workbench', () => {
     expect(sidebar.style.width).toBe('15%');
   });
 
+  it('defaults to the dark theme and switches the root and editor together', async () => {
+    const adapter = createAdapter({ 'a.ts': 'a' });
+    const renderEditor = vi.fn<WorkbenchEditorRenderer>(props => (
+      <textarea
+        aria-label={props.filename}
+        data-theme={props.theme}
+        value={props.content}
+        onChange={event => props.onChange(event.target.value)}
+      />
+    ));
+    const view = render(
+      <Workbench adapter={adapter} renderEditor={renderEditor} />,
+    );
+    const root = () => view.container.querySelector('[data-workbench]')!;
+
+    expect(root().getAttribute('data-theme')).toBe('dark');
+
+    const editor = await openFile('a.ts');
+
+    expect(editor.getAttribute('data-theme')).toBe('dark');
+
+    fireEvent.change(editor, { target: { value: 'a2' } });
+    view.rerender(
+      <Workbench
+        adapter={adapter}
+        renderEditor={renderEditor}
+        colorTheme="light"
+      />,
+    );
+
+    const switched = screen.getByRole('textbox', { name: 'a.ts' });
+
+    expect(root().getAttribute('data-theme')).toBe('light');
+    expect(switched.getAttribute('data-theme')).toBe('light');
+    // Switching themes keeps the open tab and its unsaved edit.
+    expect(switched).toBe(editor);
+    expect(switched).toHaveProperty('value', 'a2');
+    expect(saveButton().getAttribute('data-dirty')).toBe('true');
+  });
+
   describe('tabs', () => {
     const tabNames = () =>
       screen.getAllByRole('tab').map(tab => tab.textContent);

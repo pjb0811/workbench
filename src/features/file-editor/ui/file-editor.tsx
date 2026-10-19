@@ -1,5 +1,6 @@
 import { detectLanguage } from '../lib/detect-language';
 import type {
+  WorkbenchColorTheme,
   WorkbenchEditorLanguage,
   WorkbenchEditorRenderer,
 } from '../model/editor-contract';
@@ -11,7 +12,7 @@ export interface FileEditorProps {
   /** Overrides the language detected from `filename`. */
   language?: WorkbenchEditorLanguage;
   readOnly?: boolean;
-  theme?: 'dark' | 'light';
+  theme?: WorkbenchColorTheme;
   onChange: (content: string) => void;
   onSave?: (content: string) => void;
   /**
