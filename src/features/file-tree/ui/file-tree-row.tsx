@@ -43,8 +43,9 @@ export const FileTreeNode = ({
   const isExpanded = isDirectory && node.isOpen;
   const icon = renderIcon?.({ node: node.data, expanded: isExpanded });
 
+  // `style` carries react-arborist's per-depth indentation.
   return (
-    <div style={style}>
+    <div style={style} data-workbench-node-content>
       {isDirectory && (
         <span
           aria-hidden="true"

@@ -59,6 +59,9 @@ describe('FileTree', () => {
     const dir = screen.getByRole('treeitem', { name: 'directory' });
     const arrow = dir.querySelector('[data-workbench-node-arrow]')!;
 
+    expect(
+      dir.querySelector('[data-workbench-node-content]')?.contains(arrow),
+    ).toBe(true);
     expect(arrow.textContent).toBe('›');
     expect(arrow.getAttribute('aria-hidden')).toBe('true');
     expect(arrow.hasAttribute('data-open')).toBe(false);
