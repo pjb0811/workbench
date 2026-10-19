@@ -9,6 +9,9 @@ import { FileTree, type FileTreeIconRenderer } from '@/features/file-tree';
 import type { WorkbenchAdapter } from '@/entities/adapter';
 import type { WorkbenchNode } from '@/entities/node';
 
+import { type OpenTab, closeTab, isDirty, moveTab } from '../model/open-tabs';
+import { FileTabs } from './file-tabs';
+
 export interface WorkbenchProps {
   /** Data source for the tree and the files. Replacing it reloads the tree. */
   adapter: WorkbenchAdapter;
@@ -22,14 +25,8 @@ export interface WorkbenchProps {
    * `adapter.writeFile` is never called.
    */
   readOnly?: boolean;
-  /** Renders decorative tree icons. None are provided by default. */
+  /** Renders decorative tree and tab icons. None are provided by default. */
   renderIcon?: FileTreeIconRenderer;
-}
-
-interface OpenFile {
-  node: WorkbenchNode;
-  content: string;
-  savedContent: string;
 }
 
 // Everything that belongs to one adapter. Responses from a replaced adapter
@@ -39,8 +36,10 @@ interface Session {
   nodes: WorkbenchNode[];
   treeLoading: boolean;
   openingId?: string;
-  file?: OpenFile;
-  saving: boolean;
+  tabs: OpenTab[];
+  activeTabId?: string;
+  /** Ids of the tabs whose save is in flight. */
+  savingIds: string[];
   error?: string;
 }
 
@@ -48,7 +47,8 @@ const createSession = (adapter: WorkbenchAdapter): Session => ({
   adapter,
   nodes: [],
   treeLoading: true,
-  saving: false,
+  tabs: [],
+  savingIds: [],
 });
 
 const toMessage = (reason: unknown) =>
@@ -61,7 +61,7 @@ export const Workbench = ({
   renderIcon,
 }: WorkbenchProps) => {
   const [session, setSession] = useState(() => createSession(adapter));
-  const savingRef = useRef(false);
+  const savingRef = useRef(new Set<string>());
 
   if (session.adapter !== adapter) {
     setSession(createSession(adapter));
@@ -105,6 +105,18 @@ export const Workbench = ({
   }, [adapter]);
 
   const openFile = async (node: WorkbenchNode) => {
+    // An open file is only activated; its tab keeps the unsaved edits.
+    if (session.tabs.some(tab => tab.node.id === node.id)) {
+      setSession(current => ({
+        ...current,
+        openingId: undefined,
+        activeTabId: node.id,
+        error: undefined,
+      }));
+
+      return;
+    }
+
     setSession(current => ({
       ...current,
       openingId: node.id,
@@ -123,7 +135,10 @@ export const Workbench = ({
           ? {
               ...current,
               openingId: undefined,
-              file: { node, content, savedContent: content },
+              activeTabId: node.id,
+              tabs: current.tabs.some(tab => tab.node.id === node.id)
+                ? current.tabs
+                : [...current.tabs, { node, content, savedContent: content }],
             }
           : current,
       );
@@ -136,69 +151,79 @@ export const Workbench = ({
     }
   };
 
-  const changeContent = (content: string) => {
+  const updateTab = (
+    current: Session,
+    id: string,
+    change: (tab: OpenTab) => OpenTab,
+  ): Session => ({
+    ...current,
+    tabs: current.tabs.map(tab => (tab.node.id === id ? change(tab) : tab)),
+  });
+
+  const changeContent = (id: string, content: string) => {
     if (readOnly) {
       return;
     }
 
-    setSession(current =>
-      current.file
-        ? { ...current, file: { ...current.file, content } }
-        : current,
-    );
+    setSession(current => updateTab(current, id, tab => ({ ...tab, content })));
   };
 
   // The save button and the editor's save shortcut both land here; the
-  // shortcut passes the editor's latest text.
-  const save = async (content: string) => {
-    const file = session.file;
+  // shortcut passes the editor's latest text. Saves are keyed by tab, so
+  // switching tabs mid-save still marks the right file as saved.
+  const save = async (id: string, content: string) => {
+    const tab = session.tabs.find(item => item.node.id === id);
 
     if (
       readOnly ||
-      !file ||
-      savingRef.current ||
-      content === file.savedContent
+      !tab ||
+      savingRef.current.has(id) ||
+      content === tab.savedContent
     ) {
       return;
     }
 
-    const { node } = file;
-    const isSameFile = (current: Session) => current.file?.node.id === node.id;
+    const withoutSaving = (current: Session) =>
+      current.savingIds.filter(savingId => savingId !== id);
 
-    savingRef.current = true;
-    setSession(current => ({ ...current, saving: true, error: undefined }));
+    savingRef.current.add(id);
+    setSession(current => ({
+      ...current,
+      savingIds: [...current.savingIds, id],
+      error: undefined,
+    }));
 
     try {
-      await adapter.writeFile(node, content);
+      await adapter.writeFile(tab.node, content);
 
       update(adapter, current => ({
-        ...current,
-        saving: false,
-        file:
-          current.file && isSameFile(current)
-            ? { ...current.file, savedContent: content }
-            : current.file,
+        ...updateTab(current, id, saved => ({
+          ...saved,
+          savedContent: content,
+        })),
+        savingIds: withoutSaving(current),
       }));
     } catch (reason) {
       update(adapter, current => ({
         ...current,
-        saving: false,
+        savingIds: withoutSaving(current),
         error: toMessage(reason),
       }));
     } finally {
-      savingRef.current = false;
+      savingRef.current.delete(id);
     }
   };
 
-  const { file, error } = session;
-  const isDirty = file !== undefined && file.content !== file.savedContent;
+  const { tabs, activeTabId, error } = session;
+  const activeTab = tabs.find(tab => tab.node.id === activeTabId);
+  const isActiveDirty = activeTab !== undefined && isDirty(activeTab);
 
   return (
     <div data-workbench data-readonly={readOnly || undefined}>
       <div data-workbench-sidebar>
         <FileTree
           nodes={session.nodes}
-          selectedId={session.openingId ?? file?.node.id}
+          selectedId={session.openingId ?? activeTabId}
           loading={session.treeLoading}
           renderIcon={renderIcon}
           onSelect={node => void openFile(node)}
@@ -209,13 +234,40 @@ export const Workbench = ({
         />
       </div>
       <div data-workbench-main aria-busy={session.openingId !== undefined}>
-        {!readOnly && file && (
+        {tabs.length > 0 && (
+          <FileTabs
+            tabs={tabs.map(tab => ({
+              node: tab.node,
+              dirty: !readOnly && isDirty(tab),
+            }))}
+            activeTabId={activeTabId}
+            renderIcon={renderIcon}
+            onActivate={id =>
+              setSession(current => ({ ...current, activeTabId: id }))
+            }
+            onClose={id =>
+              setSession(current => ({
+                ...current,
+                ...closeTab(current.tabs, current.activeTabId, id),
+              }))
+            }
+            onReorder={(fromId, toId) =>
+              setSession(current => ({
+                ...current,
+                tabs: moveTab(current.tabs, fromId, toId),
+              }))
+            }
+          />
+        )}
+        {!readOnly && activeTab && (
           <button
             type="button"
             data-workbench-save
-            data-dirty={isDirty || undefined}
-            disabled={!isDirty || session.saving}
-            onClick={() => void save(file.content)}
+            data-dirty={isActiveDirty || undefined}
+            disabled={
+              !isActiveDirty || session.savingIds.includes(activeTab.node.id)
+            }
+            onClick={() => void save(activeTab.node.id, activeTab.content)}
           >
             Save
           </button>
@@ -225,15 +277,15 @@ export const Workbench = ({
             {error}
           </div>
         )}
-        {file ? (
+        {activeTab ? (
           <FileEditor
-            // A new editor per file, so undo history never crosses files.
-            key={file.node.id}
-            filename={file.node.name}
-            content={file.content}
+            // A new editor per tab, so undo history never crosses files.
+            key={activeTab.node.id}
+            filename={activeTab.node.name}
+            content={activeTab.content}
             readOnly={readOnly}
-            onChange={changeContent}
-            onSave={content => void save(content)}
+            onChange={content => changeContent(activeTab.node.id, content)}
+            onSave={content => void save(activeTab.node.id, content)}
             renderEditor={renderEditor}
           />
         ) : (

@@ -2,9 +2,9 @@
 
 ## Workbench
 
-`Workbench` combines the file tree and the file editor around one adapter. It
-loads the tree, opens a file when it is selected, tracks unsaved edits, and
-saves through the adapter.
+`Workbench` combines the file tree, file tabs and the file editor around one
+adapter. It loads the tree, opens each selected file in a tab, tracks unsaved
+edits per tab, and saves through the adapter.
 
 ```tsx
 import { Workbench } from 'workbench';
@@ -13,16 +13,17 @@ import { codeEditorRenderer } from 'workbench/code-editor';
 <Workbench adapter={adapter} renderEditor={codeEditorRenderer} />;
 ```
 
-| Prop           | Type                      | Meaning                                                             |
-| -------------- | ------------------------- | ------------------------------------------------------------------- |
-| `adapter`      | `WorkbenchAdapter`        | Data source. Replacing it reloads the tree and closes the open file |
-| `renderEditor` | `WorkbenchEditorRenderer` | Editor to render; see [File editor](#file-editor)                   |
-| `readOnly`     | `boolean`                 | View files without editing; defaults to `false`                     |
-| `renderIcon`   | `FileTreeIconRenderer`    | Tree icons; see [File tree icons](#file-tree-icons)                 |
+| Prop           | Type                      | Meaning                                                         |
+| -------------- | ------------------------- | --------------------------------------------------------------- |
+| `adapter`      | `WorkbenchAdapter`        | Data source. Replacing it reloads the tree and closes every tab |
+| `renderEditor` | `WorkbenchEditorRenderer` | Editor to render; see [File editor](#file-editor)               |
+| `readOnly`     | `boolean`                 | View files without editing; defaults to `false`                 |
+| `renderIcon`   | `FileTreeIconRenderer`    | Tree and tab icons; see [File tree icons](#file-tree-icons)     |
 
-- **Saving.** The save button is enabled while the open file has unsaved
-  edits, and Cmd/Ctrl+S in the editor saves the editor's latest text through
-  the same path. A successful `adapter.writeFile` clears the unsaved state; a
+- **Saving.** The save button saves the active tab and is enabled while it has
+  unsaved edits. Cmd/Ctrl+S in the editor saves the editor's latest text through
+  the same path. A save stays tied to its tab even if you switch tabs while it
+  runs. A successful `adapter.writeFile` clears the unsaved state; a
   failed one keeps it and shows the error.
 - **Errors.** Failures from `getTree`, `loadChildren`, `readFile` and
   `writeFile` show the adapter's message in `[data-workbench-error]` with
@@ -32,8 +33,12 @@ import { codeEditorRenderer } from 'workbench/code-editor';
   ignored even from an editor that does not honor `readOnly`, and
   `adapter.writeFile` is never called. Use it for sources that cannot be
   written, such as `createHttpAdapter`.
-- **Switching files.** Opening another file replaces the open one, and its
-  unsaved edits are discarded. Multiple open files arrive with tabs (#2).
+- **Tabs.** Each opened file gets a tab that keeps its own content and unsaved
+  edits. Selecting a file that is already open activates its tab without
+  reading it again. Closing the active tab activates the tab to its right, or
+  to its left when it was last. Closing a tab discards its unsaved edits. Drag
+  a tab onto another to move it there (native HTML drag and drop); a middle click closes it. Tab icons come from
+  `renderIcon`, called with `expanded: false`.
 
 Workbench ships no CSS. The tree only renders with a bounded height, so give
 the widget a height and lay out its regions yourself, for example:
@@ -59,15 +64,21 @@ the widget a height and lay out its regions yourself, for example:
 }
 ```
 
-| Selector                          | Meaning                                                      |
-| --------------------------------- | ------------------------------------------------------------ |
-| `[data-workbench]`                | Widget root                                                  |
-| `[data-workbench][data-readonly]` | Read-only widget                                             |
-| `[data-workbench-sidebar]`        | Region that holds the tree                                   |
-| `[data-workbench-main]`           | Region that holds the editor; `aria-busy` while a file opens |
-| `[data-workbench-save]`           | Save button; `data-dirty` while there are unsaved edits      |
-| `[data-workbench-error]`          | Error message                                                |
-| `[data-workbench-empty]`          | Shown while no file is open                                  |
+| Selector                          | Meaning                                                                                        |
+| --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `[data-workbench]`                | Widget root                                                                                    |
+| `[data-workbench][data-readonly]` | Read-only widget                                                                               |
+| `[data-workbench-sidebar]`        | Region that holds the tree                                                                     |
+| `[data-workbench-main]`           | Region that holds the editor; `aria-busy` while a file opens                                   |
+| `[data-workbench-tabs]`           | Tab list (`role="tablist"`)                                                                    |
+| `[data-workbench-tab]`            | One tab; `data-active`, `data-dirty`, `data-dragging` and `data-drop-target` reflect its state |
+| `[data-workbench-tab-label]`      | Button that activates the tab (`role="tab"`)                                                   |
+| `[data-workbench-tab-icon]`       | Consumer icon wrapper, omitted when no icon is returned                                        |
+| `[data-workbench-tab-name]`       | File name                                                                                      |
+| `[data-workbench-tab-close]`      | Close button                                                                                   |
+| `[data-workbench-save]`           | Save button for the active tab; `data-dirty` while it has unsaved edits                        |
+| `[data-workbench-error]`          | Error message                                                                                  |
+| `[data-workbench-empty]`          | Shown while no file is open                                                                    |
 
 ## File tree icons
 
