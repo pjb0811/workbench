@@ -41,15 +41,18 @@ Small, self-contained packages with no global state, where the consumer has no
 reason to care about the exact version. The consumer's package manager dedupes
 them normally.
 
-| Package                  | Arrives with |
-| ------------------------ | ------------ |
-| `react-arborist`         | #9           |
-| `@jbpark/use-hooks`      | #48          |
-| `react-resizable-panels` | #13          |
+| Package             | Arrives with |
+| ------------------- | ------------ |
+| `react-arborist`    | #9           |
+| `@jbpark/use-hooks` | #48          |
 
 Tab reordering (#2) uses native HTML drag and drop instead of a drag library.
 `@dnd-kit` would have added about 58 kB (17 kB gzip) to the main entry for that
 one interaction.
+
+Sidebar resizing (#13) is likewise a pointer and keyboard separator in
+`src/shared/lib/use-split-resize` instead of `react-resizable-panels`, which
+ships 97 kB (27 kB gzip) unminified.
 
 ### 3. Not a dependency at all — the consumer supplies it
 

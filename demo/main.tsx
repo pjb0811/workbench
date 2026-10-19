@@ -75,8 +75,13 @@ function Demo() {
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         <style>{`
-          [data-workbench] { display: flex; gap: 16px; height: 100%; }
-          [data-workbench-sidebar] { width: 240px; flex: none; }
+          [data-workbench] { display: flex; height: 100%; }
+          [data-workbench][data-resizing] { cursor: col-resize; user-select: none; }
+          [data-workbench-resize-handle] {
+            width: 6px; margin: 0 6px; cursor: col-resize; background: #eee;
+          }
+          [data-workbench-resize-handle]:hover,
+          [data-workbench-resize-handle][data-dragging] { background: #1a73e8; }
           [data-workbench-main] {
             display: flex; flex-direction: column; gap: 8px;
             flex: 1; min-width: 0;

@@ -39,6 +39,11 @@ import { codeEditorRenderer } from 'workbench/code-editor';
   to its left when it was last. Closing a tab discards its unsaved edits. Drag
   a tab onto another to move it there (native HTML drag and drop); a middle click closes it. Tab icons come from
   `renderIcon`, called with `expanded: false`.
+- **Resizing.** A separator between the tree and the editor resizes the
+  sidebar. Drag it with a mouse, touch or pen, or focus it and use the arrow
+  keys (1% per press), Home (narrowest) and End (widest). The sidebar starts
+  at 20% of the widget width and stays between 15% and 50%. Its width is set
+  inline, so consumer CSS should not set one.
 
 Workbench ships no CSS. The tree only renders with a bounded height, so give
 the widget a height and lay out its regions yourself, for example:
@@ -48,8 +53,13 @@ the widget a height and lay out its regions yourself, for example:
   display: flex;
   height: 100%;
 }
-[data-workbench-sidebar] {
-  width: 240px;
+[data-workbench-resize-handle] {
+  width: 4px;
+  cursor: col-resize;
+}
+[data-workbench][data-resizing] {
+  cursor: col-resize;
+  user-select: none;
 }
 [data-workbench-main] {
   display: flex;
@@ -68,7 +78,9 @@ the widget a height and lay out its regions yourself, for example:
 | --------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `[data-workbench]`                | Widget root                                                                                    |
 | `[data-workbench][data-readonly]` | Read-only widget                                                                               |
-| `[data-workbench-sidebar]`        | Region that holds the tree                                                                     |
+| `[data-workbench][data-resizing]` | Present while the sidebar is being resized                                                     |
+| `[data-workbench-sidebar]`        | Region that holds the tree; its width is set inline                                            |
+| `[data-workbench-resize-handle]`  | Separator that resizes the sidebar (`role="separator"`); `data-dragging` while dragged         |
 | `[data-workbench-main]`           | Region that holds the editor; `aria-busy` while a file opens                                   |
 | `[data-workbench-tabs]`           | Tab list (`role="tablist"`)                                                                    |
 | `[data-workbench-tab]`            | One tab; `data-active`, `data-dirty`, `data-dragging` and `data-drop-target` reflect its state |
