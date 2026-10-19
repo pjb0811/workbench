@@ -19,6 +19,7 @@ import { codeEditorRenderer } from 'workbench/code-editor';
 | `renderEditor` | `WorkbenchEditorRenderer` | Editor to render; see [File editor](#file-editor)               |
 | `readOnly`     | `boolean`                 | View files without editing; defaults to `false`                 |
 | `renderIcon`   | `FileTreeIconRenderer`    | Tree and tab icons; see [File tree icons](#file-tree-icons)     |
+| `colorTheme`   | `'dark' \| 'light'`       | Color scheme; defaults to `'dark'`                              |
 
 - **Saving.** The save button saves the active tab and is enabled while it has
   unsaved edits. Cmd/Ctrl+S in the editor saves the editor's latest text through
@@ -39,6 +40,12 @@ import { codeEditorRenderer } from 'workbench/code-editor';
   to its left when it was last. Closing a tab discards its unsaved edits. Drag
   a tab onto another to move it there (native HTML drag and drop); a middle click closes it. Tab icons come from
   `renderIcon`, called with `expanded: false`.
+- **Theme.** `colorTheme` sets `data-theme` on the root and is passed to the
+  editor renderer as `theme`, so the tree, tabs and editor switch together.
+  Workbench defines no colors: write them under `[data-theme='dark']` and
+  `[data-theme='light']`. `codeEditorRenderer` switches ui-kit `CodeEditor`
+  between its VSCode dark and light themes; another renderer maps `theme` to
+  its own engine. Changing the theme keeps open tabs and unsaved edits.
 - **Resizing.** A separator between the tree and the editor resizes the
   sidebar. Drag it with a mouse, touch or pen, or focus it and use the arrow
   keys (1% per press), Home (narrowest) and End (widest). The sidebar starts
@@ -77,6 +84,7 @@ the widget a height and lay out its regions yourself, for example:
 | Selector                          | Meaning                                                                                        |
 | --------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `[data-workbench]`                | Widget root                                                                                    |
+| `[data-workbench][data-theme]`    | `dark` or `light`, from `colorTheme`                                                           |
 | `[data-workbench][data-readonly]` | Read-only widget                                                                               |
 | `[data-workbench][data-resizing]` | Present while the sidebar is being resized                                                     |
 | `[data-workbench-sidebar]`        | Region that holds the tree; its width is set inline                                            |

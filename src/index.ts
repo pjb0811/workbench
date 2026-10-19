@@ -11,6 +11,7 @@ export type {
 export { FileEditor, detectLanguage } from '@/features/file-editor';
 export type {
   FileEditorProps,
+  WorkbenchColorTheme,
   WorkbenchEditorLanguage,
   WorkbenchEditorProps,
   WorkbenchEditorRenderer,

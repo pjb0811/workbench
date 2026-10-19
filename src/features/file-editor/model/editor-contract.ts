@@ -16,6 +16,9 @@ export type WorkbenchEditorLanguage =
   | 'markdown'
   | 'plaintext';
 
+/** Color scheme of the widget and the editor inside it. */
+export type WorkbenchColorTheme = 'dark' | 'light';
+
 /**
  * Props every editor renderer receives. Engine-specific options stay in the
  * renderer's closure, so this contract carries no CodeMirror or Monaco types.
@@ -28,7 +31,7 @@ export interface WorkbenchEditorProps {
   language: WorkbenchEditorLanguage;
   /** While true, the renderer must not call `onChange` or `onSave`. */
   readOnly: boolean;
-  theme: 'dark' | 'light';
+  theme: WorkbenchColorTheme;
   onChange: (content: string) => void;
   /** Called with the latest text when the user asks to save. */
   onSave?: (content: string) => void;

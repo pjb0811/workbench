@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 
 import {
   FileEditor,
+  type WorkbenchColorTheme,
   type WorkbenchEditorRenderer,
 } from '@/features/file-editor';
 import { FileTree, type FileTreeIconRenderer } from '@/features/file-tree';
@@ -29,6 +30,11 @@ export interface WorkbenchProps {
   readOnly?: boolean;
   /** Renders decorative tree and tab icons. None are provided by default. */
   renderIcon?: FileTreeIconRenderer;
+  /**
+   * Exposed as `data-theme` on the root for consumer CSS, and passed to the
+   * editor renderer as `theme`. Defaults to `'dark'`.
+   */
+  colorTheme?: WorkbenchColorTheme;
 }
 
 // Everything that belongs to one adapter. Responses from a replaced adapter
@@ -64,6 +70,7 @@ export const Workbench = ({
   renderEditor,
   readOnly = false,
   renderIcon,
+  colorTheme = 'dark',
 }: WorkbenchProps) => {
   const [session, setSession] = useState(() => createSession(adapter));
   const savingRef = useRef(new Set<string>());
@@ -229,6 +236,7 @@ export const Workbench = ({
     <div
       ref={sidebar.containerRef}
       data-workbench
+      data-theme={colorTheme}
       data-readonly={readOnly || undefined}
       data-resizing={sidebar.isResizing || undefined}
     >
@@ -311,6 +319,7 @@ export const Workbench = ({
             filename={activeTab.node.name}
             content={activeTab.content}
             readOnly={readOnly}
+            theme={colorTheme}
             onChange={content => changeContent(activeTab.node.id, content)}
             onSave={content => void save(activeTab.node.id, content)}
             renderEditor={renderEditor}
