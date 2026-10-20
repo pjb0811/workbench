@@ -53,10 +53,23 @@ jobs:
         if: steps.tag_check.outputs.already_tagged == 'false'
         run: pnpm run build
 
+      # A version already on npm was published by hand (the first release,
+      # before npm trusts this workflow). It is only tagged and released here.
+      - name: Check if current version is on npm
+        if: steps.tag_check.outputs.already_tagged == 'false'
+        id: npm_check
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          if npm view "$NAME@${{ steps.tag_check.outputs.version }}" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # npm's OIDC Trusted Publishing, so no NPM_TOKEN. pnpm publish does not
       # support it, hence npm.
       - name: Publish to npm
-        if: steps.tag_check.outputs.already_tagged == 'false'
+        if: steps.tag_check.outputs.already_tagged == 'false' && steps.npm_check.outputs.published == 'false'
         run: npm publish
 
       - name: Tag release
@@ -72,17 +85,31 @@ jobs:
       - name: Get changelog entry
         if: steps.tag_check.outputs.already_tagged == 'false'
         id: changelog
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
         run: |
           VERSION=${{ steps.tag_check.outputs.version }}
-          CONTENT=""
+          RAW=""
           if [ -f CHANGELOG.md ]; then
             # Skip the "## VERSION" header and stop at the next "## " header.
-            CONTENT=$(awk -v version="$VERSION" '
+            RAW=$(awk -v version="$VERSION" '
               $0 ~ "^## " version "$" { found=1; next }
               found && /^## / { exit }
               found { print }
             ' CHANGELOG.md)
           fi
+
+          CONTENT="$RAW"
+          # Best-effort polishing into release notes; any failure falls back
+          # to the raw changelog text and never blocks the release.
+          if [ -n "$RAW" ]; then
+            if POLISHED=$(echo "$RAW" | PACKAGE_NAME="@jbpark/workbench" VERSION="$VERSION" node .github/scripts/polish-release-notes.mjs); then
+              CONTENT="$POLISHED"
+            else
+              echo "::warning::Release-note polishing failed, falling back to raw changelog"
+            fi
+          fi
+
           {
             echo "body<<EOF"
             echo "$CONTENT"
