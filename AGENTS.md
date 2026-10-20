@@ -9,6 +9,7 @@ Use the Node version in `.nvmrc` and pnpm.
 | `pnpm check-types`        | Type-check every project (`tsc -b`)             |
 | `pnpm check-declarations` | Check built declarations without demo globals   |
 | `pnpm lint`               | ESLint with no warnings allowed                 |
+| `pnpm test`               | Run the Vitest suite                            |
 
 The pre-commit hook runs `lint-staged`.
 
@@ -28,13 +29,13 @@ Write comments for someone reading the code now: say what the code does first, g
 
 Procedures shared by every pjb0811 repository are global Claude Code skills in the private repository `pjb0811/skills`. Agents that can't read them follow the summaries in this file.
 
-| Skill                                 | Use                                                                                             |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `commit`, `pr`, `issue`               | Commit messages, PR and issue bodies                                                            |
-| `coding-style`                        | Conventions, renames, comments (C), boolean names (D), braces (E), subcomponent file layout (F) |
-| `changesets-release`, `publish-check` | Release flow and pre-release checks                                                             |
-| `shared-library-first`                | Reusable UI goes to ui-kit and hooks to use-hooks first                                         |
-| `ref-verification`                    | Read repository state from git refs, not the worktree                                           |
+| Skill                                 | Use                                                                                                                                                                            |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `commit`, `pr`, `issue`               | Commit messages, PR and issue bodies                                                                                                                                           |
+| `coding-style`                        | Conventions, renames, comments (C), boolean names (D), braces (E), subcomponent file layout (F), blank lines (G), order of code inside a component (H), feature subfolders (I) |
+| `changesets-release`, `publish-check` | Release flow and pre-release checks                                                                                                                                            |
+| `shared-library-first`                | Reusable UI goes to ui-kit and hooks to use-hooks first                                                                                                                        |
+| `ref-verification`                    | Read repository state from git refs, not the worktree                                                                                                                          |
 
 ### Commit messages
 
