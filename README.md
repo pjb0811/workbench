@@ -7,8 +7,8 @@ adapter. It loads the tree, opens each selected file in a tab, tracks unsaved
 edits per tab, and saves through the adapter.
 
 ```tsx
-import { Workbench } from 'workbench';
-import { codeEditorRenderer } from 'workbench/code-editor';
+import { Workbench } from '@jbpark/workbench';
+import { codeEditorRenderer } from '@jbpark/workbench/code-editor';
 
 <Workbench adapter={adapter} renderEditor={codeEditorRenderer} />;
 ```
@@ -62,7 +62,7 @@ no icons by default. Choose icons from the node's name, kind, or metadata;
 `expanded` is always `false` for files. Return `null` to omit an icon.
 
 ```tsx
-import { FileTree, type FileTreeIconRenderer } from 'workbench';
+import { FileTree, type FileTreeIconRenderer } from '@jbpark/workbench';
 
 // These components belong to the consuming app and use locally bundled SVGs.
 import { FileIcon, FolderIcon, FolderOpenIcon, TypeScriptIcon } from './icons';
@@ -120,7 +120,7 @@ Anything else, including a dotfile such as `.gitignore`, is `plaintext`.
 
 ### ui-kit CodeEditor
 
-`workbench/code-editor` provides a renderer backed by
+`@jbpark/workbench/code-editor` provides a renderer backed by
 [`@jbpark/ui-kit`](https://www.npmjs.com/package/@jbpark/ui-kit)'s CodeMirror
 `CodeEditor`. It is a separate entry, so an app that only renders the tree or
 brings its own editor never imports these packages. To use it, install the
@@ -132,8 +132,8 @@ pnpm add @jbpark/ui-kit @uiw/react-codemirror @uiw/codemirror-theme-vscode \
 ```
 
 ```tsx
-import { FileEditor } from 'workbench';
-import { codeEditorRenderer } from 'workbench/code-editor';
+import { FileEditor } from '@jbpark/workbench';
+import { codeEditorRenderer } from '@jbpark/workbench/code-editor';
 
 <div style={{ height: 400 }}>
   <FileEditor
@@ -154,7 +154,7 @@ language extensions, which reconfigures the editor.
 
 ```tsx
 import { json } from '@codemirror/lang-json';
-import { createCodeEditorRenderer } from 'workbench/code-editor';
+import { createCodeEditorRenderer } from '@jbpark/workbench/code-editor';
 
 const renderEditor = createCodeEditorRenderer({ languages: { json: json() } });
 ```
@@ -169,7 +169,7 @@ Any function that returns a React node from these props works as
 component that it returns:
 
 ```tsx
-import type { WorkbenchEditorRenderer } from 'workbench';
+import type { WorkbenchEditorRenderer } from '@jbpark/workbench';
 
 const renderTextarea: WorkbenchEditorRenderer = ({
   content,

@@ -19,7 +19,7 @@ export interface WorkbenchProps {
   /** Data source for the tree and the files. Replacing it reloads the tree. */
   adapter: WorkbenchAdapter;
   /**
-   * Renders the editor. `workbench/code-editor` provides the ui-kit
+   * Renders the editor. `@jbpark/workbench/code-editor` provides the ui-kit
    * CodeEditor renderer.
    */
   renderEditor: WorkbenchEditorRenderer;
