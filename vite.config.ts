@@ -4,6 +4,8 @@ import { URL, fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
+import { demoMockApi } from './scripts/demo-mock-api.ts';
+
 // Branches on NODE_ENV (not Vite's `command`) so `vite build --watch` and
 // `vite build` both take the library path, and only `vite` (dev server)
 // serves the demo app.
@@ -37,7 +39,7 @@ export default defineConfig({
     react(),
     ...(isProduction
       ? [dts({ tsconfigPath: './tsconfig.app.json', bundleTypes: true })]
-      : []),
+      : [demoMockApi()]),
   ],
   build: isProduction
     ? {
