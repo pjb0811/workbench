@@ -17,7 +17,7 @@ export interface FileEditorProps {
   onSave?: (content: string) => void;
   /**
    * Renders the editor. It is called during render, so keep editor state in a
-   * component it returns. `workbench/code-editor` provides the ui-kit
+   * component it returns. `@jbpark/workbench/code-editor` provides the ui-kit
    * CodeEditor renderer.
    */
   renderEditor: WorkbenchEditorRenderer;

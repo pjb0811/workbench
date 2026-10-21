@@ -18,7 +18,7 @@ if (forbidden.test(declarations)) {
 }
 
 // The main entry must type-check without the optional editor peers, which
-// only `workbench/code-editor` may reference.
+// only `@jbpark/workbench/code-editor` may reference.
 const editorPeerImport =
   /from ['"](?:@jbpark\/ui-kit|@uiw\/|@codemirror\/|codemirror['"/])/;
 
@@ -48,7 +48,7 @@ try {
     types: [],
     typeRoots: [],
     paths: {
-      workbench: [join(scratch, 'index.d.ts')],
+      '@jbpark/workbench': [join(scratch, 'index.d.ts')],
       react: [
         join(
           dirname(require.resolve('@types/react/package.json')),

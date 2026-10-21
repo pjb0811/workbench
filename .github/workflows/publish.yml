@@ -1,0 +1,128 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      # No `cache: 'pnpm'`: most main pushes skip the install below, and the
+      # cache's post-job save fails when the store was never created.
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
+
+      # The version is untagged only right after a Version Packages PR lands
+      # a new one. Every other main push has nothing to release. 0.0.0 is the
+      # placeholder before the first Version Packages PR and never publishes.
+      - name: Check if current version is already tagged
+        id: tag_check
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ "$VERSION" = "0.0.0" ] || git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "already_tagged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_tagged=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.tag_check.outputs.already_tagged == 'false'
+        run: pnpm install
+
+      - name: Build
+        if: steps.tag_check.outputs.already_tagged == 'false'
+        run: pnpm run build
+
+      # A version already on npm was published by hand (the first release,
+      # before npm trusts this workflow). It is only tagged and released here.
+      - name: Check if current version is on npm
+        if: steps.tag_check.outputs.already_tagged == 'false'
+        id: npm_check
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          if npm view "$NAME@${{ steps.tag_check.outputs.version }}" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # npm's OIDC Trusted Publishing, so no NPM_TOKEN. pnpm publish does not
+      # support it, hence npm.
+      - name: Publish to npm
+        if: steps.tag_check.outputs.already_tagged == 'false' && steps.npm_check.outputs.published == 'false'
+        run: npm publish
+
+      - name: Tag release
+        if: steps.tag_check.outputs.already_tagged == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.tag_check.outputs.version }}"
+          git push origin "v${{ steps.tag_check.outputs.version }}"
+
+      # Created here rather than on tag push: a tag pushed with GITHUB_TOKEN
+      # never triggers another workflow run.
+      - name: Get changelog entry
+        if: steps.tag_check.outputs.already_tagged == 'false'
+        id: changelog
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+        run: |
+          VERSION=${{ steps.tag_check.outputs.version }}
+          RAW=""
+          if [ -f CHANGELOG.md ]; then
+            # Skip the "## VERSION" header and stop at the next "## " header.
+            RAW=$(awk -v version="$VERSION" '
+              $0 ~ "^## " version "$" { found=1; next }
+              found && /^## / { exit }
+              found { print }
+            ' CHANGELOG.md)
+          fi
+
+          CONTENT="$RAW"
+          # Best-effort polishing into release notes; any failure falls back
+          # to the raw changelog text and never blocks the release.
+          if [ -n "$RAW" ]; then
+            if POLISHED=$(echo "$RAW" | PACKAGE_NAME="@jbpark/workbench" VERSION="$VERSION" node .github/scripts/polish-release-notes.mjs); then
+              CONTENT="$POLISHED"
+            else
+              echo "::warning::Release-note polishing failed, falling back to raw changelog"
+            fi
+          fi
+
+          {
+            echo "body<<EOF"
+            echo "$CONTENT"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        if: steps.tag_check.outputs.already_tagged == 'false'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ steps.tag_check.outputs.version }}
+          body: ${{ steps.changelog.outputs.body || format('Release {0}', steps.tag_check.outputs.version) }}
+          prerelease: ${{ contains(steps.tag_check.outputs.version, '-') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

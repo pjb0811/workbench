@@ -16,7 +16,7 @@ version and the global wiring of. They are installed by the consumer and are
 | Package                                                                                                                   | Why                                                                                                                                                                                                                               |
 | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `react`, `react-dom`                                                                                                      | A second React copy breaks hooks outright                                                                                                                                                                                         |
-| `@jbpark/ui-kit`                                                                                                          | Provides `CodeEditor` for `workbench/code-editor` (#11). The consumer usually uses ui-kit already, and two copies would mean two `Config` contexts                                                                                |
+| `@jbpark/ui-kit`                                                                                                          | Provides `CodeEditor` for `@jbpark/workbench/code-editor` (#11). The consumer usually uses ui-kit already, and two copies would mean two `Config` contexts                                                                        |
 | `@uiw/react-codemirror`, `@uiw/codemirror-theme-vscode`, `@codemirror/lang-javascript`, `@codemirror/merge`, `codemirror` | ui-kit's own optional peers for `CodeEditor`. Declared here as well because ui-kit marks them optional, so nothing else tells the consumer to install them. Two CodeMirror copies break its extensions, which compare by instance |
 
 The React range starts at `^19.1.1` because `@jbpark/use-hooks` declares that
@@ -26,7 +26,7 @@ peer range; a lower floor would give React 19.0.x consumers a peer warning
 Every editor package is `peerDependenciesMeta.optional`: the file tree works
 without an editor, and a consumer that only renders the tree or injects its own
 `renderEditor` should not be asked to install them. Only the
-`workbench/code-editor` entry imports them, and the main entry never imports
+`@jbpark/workbench/code-editor` entry imports them, and the main entry never imports
 that one, so leaving them uninstalled breaks neither resolution nor the build.
 Workbench adds no Monaco packages, workers, CDN loader or global diagnostics
 settings.
