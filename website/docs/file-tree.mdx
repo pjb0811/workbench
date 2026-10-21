@@ -1,0 +1,98 @@
+---
+sidebar_position: 3
+title: File tree
+---
+
+import FileTreeDemo from '@site/src/demo/file-tree-demo';
+
+# File tree
+
+`FileTree` renders a virtualized, lazily loaded tree. `Workbench` uses it, and
+it also works on its own: you hold the root nodes, and the tree loads each
+directory when it is first opened.
+
+<FileTreeDemo />
+
+```tsx
+import { useEffect, useState } from 'react';
+
+import { FileTree, type WorkbenchNode } from '@jbpark/workbench';
+
+function Explorer({ adapter }) {
+  const [nodes, setNodes] = useState<WorkbenchNode[]>([]);
+
+  useEffect(() => {
+    void adapter.getTree().then(setNodes);
+  }, [adapter]);
+
+  // The parent must provide a bounded height for virtualization.
+  return (
+    <div style={{ height: 400 }}>
+      <FileTree
+        nodes={nodes}
+        onExpand={node => adapter.loadChildren(node)}
+        onSelect={node => console.log('open', node.id)}
+      />
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop         | Type                                         | Meaning                                                               |
+| ------------ | -------------------------------------------- | --------------------------------------------------------------------- |
+| `nodes`      | `WorkbenchNode[]`                            | Root nodes. Replacing the array resets locally loaded children        |
+| `selectedId` | `string`                                     | File selected by the consumer; selecting it also scrolls it into view |
+| `loading`    | `boolean`                                    | Marks the tree as busy and blocks file activation and lazy requests   |
+| `renderIcon` | `FileTreeIconRenderer`                       | Renders decorative icons. None are provided by default                |
+| `onSelect`   | `(node) => void`                             | Called on file activation, never for directories                      |
+| `onExpand`   | `(node) => Promise<WorkbenchNode[] \| void>` | Loads an unloaded directory once                                      |
+| `onError`    | `(error, node) => void`                      | Receives load errors. Without it, an alert is shown in the tree       |
+
+## Lazy loading
+
+A directory whose `children` is `undefined` is not loaded yet; `[]` means it is
+loaded and empty. The first time such a directory opens, the tree calls
+`onExpand`:
+
+- **Return the children** and the tree merges them in locally, as in the
+  example above. Passing `adapter.loadChildren` is all it takes.
+- **Return nothing** and update `nodes` yourself, if you keep the whole tree in
+  your own state.
+
+Each directory is requested once. A failed request can be retried by closing
+and reopening the directory.
+
+## Icons
+
+`renderIcon` receives `{ node, expanded }` and renders nothing by default.
+Choose icons from the node's name or kind; `expanded` is always `false` for
+files. Return `null` to omit an icon.
+
+```tsx
+import type { FileTreeIconRenderer } from '@jbpark/workbench';
+
+// These components belong to the consuming app.
+import { FileIcon, FolderIcon, FolderOpenIcon, TypeScriptIcon } from './icons';
+
+const renderIcon: FileTreeIconRenderer = ({ node, expanded }) => {
+  if (node.kind === 'directory') {
+    return expanded ? <FolderOpenIcon /> : <FolderIcon />;
+  }
+
+  return /\.tsx?$/.test(node.name) ? <TypeScriptIcon /> : <FileIcon />;
+};
+```
+
+Bundle icon assets in the app so they render offline. Workbench does not
+register icon collections, fetch assets, or depend on an icon package. The
+demo on this page uses [lucide-react](https://lucide.dev).
+
+## Accessibility
+
+Directory rows include a disclosure arrow. Clicking it or the directory name
+toggles the directory, and the tree supports keyboard expansion. Icons and
+arrows are decorative and hidden from assistive technology; the file or
+directory name remains the accessible label. Keep icons free of interactive
+controls.

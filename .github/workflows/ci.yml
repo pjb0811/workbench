@@ -40,3 +40,12 @@ jobs:
 
       - name: Check consumer declarations
         run: pnpm run check-declarations
+
+      - name: Install website dependencies
+        run: pnpm --dir website install --frozen-lockfile
+
+      - name: Type check website
+        run: pnpm --dir website run typecheck
+
+      - name: Build website
+        run: pnpm --dir website build

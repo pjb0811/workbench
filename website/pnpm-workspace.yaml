@@ -1,0 +1,14 @@
+# Makes website/ its own pnpm root. Without this file, pnpm finds the root
+# pnpm-workspace.yaml and `pnpm --dir website install` installs the library
+# instead of the docs site.
+
+# Dependencies allowed to run install scripts. pnpm 11+ fails an install on
+# any script it hasn't been told about.
+allowBuilds:
+  '@swc/core': true
+  core-js: true
+
+# Our own packages install as soon as they're published. pnpm 11+ otherwise
+# waits a day after any release (minimumReleaseAge).
+minimumReleaseAgeExclude:
+  - '@jbpark/*'

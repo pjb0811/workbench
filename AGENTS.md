@@ -2,14 +2,15 @@
 
 Use the Node version in `.nvmrc` and pnpm.
 
-| Command                   | Use                                             |
-| ------------------------- | ----------------------------------------------- |
-| `pnpm dev`                | Run the demo in `demo/` with Vite               |
-| `pnpm build`              | Build the library bundle and types into `dist/` |
-| `pnpm check-types`        | Type-check every project (`tsc -b`)             |
-| `pnpm check-declarations` | Check built declarations without demo globals   |
-| `pnpm lint`               | ESLint with no warnings allowed                 |
-| `pnpm test`               | Run the Vitest suite                            |
+| Command                    | Use                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                 | Run the demo in `demo/` with Vite                                                                                         |
+| `pnpm build`               | Build the library bundle and types into `dist/`                                                                           |
+| `pnpm check-types`         | Type-check every project (`tsc -b`)                                                                                       |
+| `pnpm check-declarations`  | Check built declarations without demo globals                                                                             |
+| `pnpm lint`                | ESLint with no warnings allowed                                                                                           |
+| `pnpm test`                | Run the Vitest suite                                                                                                      |
+| `pnpm --dir website start` | Build the library and serve the docs site in `website/` (a separate pnpm project; run `pnpm --dir website install` first) |
 
 The pre-commit hook runs `lint-staged`.
 

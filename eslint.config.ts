@@ -7,7 +7,15 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config([
-  globalIgnores(['dist/**', 'dist-demo/**', 'node_modules/**', 'coverage/**']),
+  // website/ is a separate Docusaurus project with its own dependencies and
+  // type check (`pnpm --dir website run typecheck`).
+  globalIgnores([
+    'dist/**',
+    'dist-demo/**',
+    'node_modules/**',
+    'coverage/**',
+    'website/**',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
