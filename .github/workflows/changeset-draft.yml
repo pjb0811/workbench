@@ -1,0 +1,101 @@
+name: Changeset Draft
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+
+concurrency: changeset-draft-${{ github.event.pull_request.number }}
+
+permissions:
+  contents: write
+
+jobs:
+  draft:
+    # Skip PRs from forks (bot token can't push back to them) and skip the
+    # changesets bot's own Version Packages PR (nothing to draft a
+    # changeset for — and drafting one would just describe its own version
+    # bump).
+    #
+    # Also skip Renovate's update PRs: Renovate stops rebasing and updating a
+    # branch once anyone else commits to it, so a drafted changeset would
+    # freeze the PR. An update that should ship in a release gets its
+    # changeset by hand.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !startsWith(github.event.pull_request.head.ref, 'changeset-release/') &&
+      !startsWith(github.event.pull_request.head.ref, 'renovate/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+
+      # Only draft once per PR — if a changeset was already added in this
+      # PR (hand-written under any filename, or from an earlier run of
+      # this workflow on this PR), leave it alone rather than adding a
+      # second, possibly-conflicting one on every subsequent push.
+      #
+      # This checks the PR's actual diff (any new .changeset/*.md file
+      # between base and head) rather than matching a filename pattern.
+      # An earlier version matched only `.changeset/<branch-slug>*.md`,
+      # which missed any hand-written changeset not named after the
+      # branch — e.g. a descriptive name like `fix-foo-bug.md` on a
+      # branch called `fix/unrelated-slug` — so the bot drafted a second,
+      # duplicate changeset alongside it every time. (An even earlier
+      # version checked for *any* changeset file anywhere in .changeset/,
+      # which had the opposite problem: an older, still-unreleased PR's
+      # changeset made every PR merged after it silently skip drafting
+      # its own, until the next release. Scoping to *this PR's diff*
+      # avoids both failure modes — it only reacts to files this PR
+      # itself introduces, under any name.)
+      - name: Check for existing changeset
+        id: existing
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BRANCH_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          slug=$(printf '%s' "$BRANCH_REF" | tr '/' '-' | tr -c 'a-zA-Z0-9._-' '-')
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+          added=$(git diff --name-only --diff-filter=A "$BASE_SHA...$HEAD_SHA" -- '.changeset/*.md')
+          if [ -n "$added" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Changeset(s) already added in this PR — skipping draft:"
+            echo "$added"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Draft changeset via NVIDIA API
+        id: draft
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BRANCH_SLUG: ${{ steps.existing.outputs.slug }}
+        run: node .github/scripts/draft-changeset.mjs
+
+      - name: Commit and push changeset
+        if: steps.existing.outputs.exists == 'false'
+        run: |
+          if git status --porcelain -- '.changeset/*.md' | grep -q .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .changeset/*.md
+            # `capped` is set by draft-bump.mjs when the model's `major` was
+            # lowered to `minor`, so the lowered bump shows in the PR's
+            # commit list and isn't taken as the model's own call.
+            git commit -m "docs: draft changeset for PR #${{ github.event.pull_request.number }}${{ steps.draft.outputs.capped == 'true' && ' (model suggested major; capped at minor)' || '' }}"
+            git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          else
+            echo "No changeset produced (no changes outside the demo app, or model found no user-facing change) — skipping commit."
+          fi

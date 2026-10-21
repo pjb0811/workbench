@@ -11,7 +11,7 @@ import {
   createFsAdapter,
   createHttpAdapter,
   detectLanguage,
-} from 'workbench';
+} from '@jbpark/workbench';
 
 declare const directory: FileSystemDirectoryHandle;
 

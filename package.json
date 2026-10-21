@@ -1,8 +1,26 @@
 {
-  "name": "workbench",
+  "name": "@jbpark/workbench",
   "version": "0.0.0",
   "private": false,
   "description": "Headless file tree + editor React library, backed by a swappable WorkbenchAdapter data source.",
+  "keywords": [
+    "react",
+    "file-tree",
+    "file-explorer",
+    "code-editor",
+    "headless",
+    "codemirror"
+  ],
+  "license": "MIT",
+  "author": "jbpark (https://github.com/pjb0811)",
+  "homepage": "https://github.com/pjb0811/workbench#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pjb0811/workbench.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pjb0811/workbench/issues"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -22,6 +40,13 @@
   "files": [
     "dist"
   ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "packageManager": "pnpm@11.14.0+sha512.66c1ac4c7d4762d6d7dde44c7f3e5a73591ed0a0806e751d4ed32d4f004f25b2285a906b1fd8a9e3e621df3b4e2858bf88e50e0cf626bedbe977fe434a5caf85",
   "scripts": {
     "dev": "vite",
@@ -32,6 +57,8 @@
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "test:watch": "vitest",
+    "changeset": "changeset",
+    "prepublishOnly": "pnpm build",
     "prepare": "husky"
   },
   "peerDependencies": {
@@ -65,6 +92,7 @@
     }
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "@codemirror/lang-javascript": "^6.2.5",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/merge": "^6.12.2",
