@@ -1,0 +1,109 @@
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ *
+ * Plain hand-written CSS rather than Tailwind utility classes for layout:
+ * this page only gets `@jbpark/ui-kit/style.css`'s pre-compiled output
+ * (imported wholesale in src/theme/Root.tsx, not run through this site's
+ * own Tailwind build), so a utility class only renders if ui-kit's own
+ * source happened to use it too — grid-cols-* and several responsive/color
+ * variants don't. ui-kit's own components (Button, Card, Typography) are
+ * safe since their internal classes ship with the package regardless of
+ * what this page uses them for.
+ */
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 5rem;
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+}
+
+.badge {
+  height: 1.25rem;
+  width: auto;
+}
+
+.subtitle {
+  max-width: 34rem;
+  color: var(--muted-foreground, var(--ifm-color-emphasis-700));
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.installCommand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  max-width: 26rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border, var(--ifm-color-emphasis-300));
+  border-radius: var(--radius, var(--ifm-global-radius));
+  background: var(--muted, var(--ifm-color-emphasis-100));
+  color: var(--foreground, var(--ifm-font-color-base));
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.installCommand:hover {
+  background: var(--accent, var(--ifm-color-emphasis-200));
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.sectionTitle {
+  text-align: center;
+}
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.featureIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 0.75rem;
+  border-radius: var(--radius, var(--ifm-global-radius));
+  background: var(--muted, var(--ifm-color-emphasis-100));
+  color: var(--foreground, var(--ifm-font-color-base));
+}
+
+@media screen and (min-width: 640px) {
+  .actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}

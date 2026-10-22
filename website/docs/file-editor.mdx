@@ -1,0 +1,133 @@
+---
+sidebar_position: 4
+title: File editor
+---
+
+import FileEditorDemo from '@site/src/demo/file-editor-demo';
+
+# File editor
+
+`FileEditor` shows one file. It does not draw an editor itself: it passes an
+engine-neutral set of props to `renderEditor`, and the renderer returns the
+editor. File I/O, unsaved state and saving stay with whoever renders
+`FileEditor` (in `Workbench`, the widget), so swapping the editor never touches
+the data source.
+
+<FileEditorDemo />
+
+Switch the renderer to see the same contract drive ui-kit's CodeMirror editor
+and a plain `<textarea>`, and change the filename to see language detection.
+
+## Props
+
+| Prop           | Type                        | Meaning                                                                                                             |
+| -------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `filename`     | `string`                    | Name of the open file; drives language detection                                                                    |
+| `content`      | `string`                    | Current text                                                                                                        |
+| `onChange`     | `(content: string) => void` | Called with each edit                                                                                               |
+| `onSave`       | `(content: string) => void` | Called with the latest text when the user saves                                                                     |
+| `renderEditor` | `WorkbenchEditorRenderer`   | Renders the editor                                                                                                  |
+| `readOnly`     | `boolean`                   | Defaults to `false`. While set, `FileEditor` drops calls to `onChange` and `onSave` even if the renderer makes them |
+| `theme`        | `'dark' \| 'light'`         | Defaults to `'light'`                                                                                               |
+| `language`     | `WorkbenchEditorLanguage`   | Overrides the language detected from `filename`                                                                     |
+
+The renderer output is wrapped in `[data-workbench-editor]` (with
+`data-readonly`) and `[data-workbench-content]`, which stay the same whichever
+editor you use.
+
+## The renderer contract
+
+`renderEditor` receives `WorkbenchEditorProps`:
+
+| Prop       | Type                                       | Meaning                                           |
+| ---------- | ------------------------------------------ | ------------------------------------------------- |
+| `filename` | `string`                                   | Name of the open file                             |
+| `content`  | `string`                                   | Current text                                      |
+| `language` | `WorkbenchEditorLanguage`                  | Detected from `filename`, or `plaintext`          |
+| `readOnly` | `boolean`                                  | The editor must not change or save the file       |
+| `theme`    | `'dark' \| 'light'`                        | Color scheme to render                            |
+| `onChange` | `(content: string) => void`                | Report an edit                                    |
+| `onSave`   | `((content: string) => void) \| undefined` | Save the latest text; `undefined` while read-only |
+
+`detectLanguage(filename)` maps the last extension, ignoring case, to
+`javascript`, `jsx`, `typescript`, `tsx`, `json`, `css`, `html` or `markdown`.
+Anything else, including a dotfile such as `.gitignore`, is `plaintext`. A
+renderer that does not support a language shows it as plain text.
+
+## ui-kit CodeEditor
+
+`@jbpark/workbench/code-editor` provides a renderer backed by
+[`@jbpark/ui-kit`](https://www.npmjs.com/package/@jbpark/ui-kit)'s CodeMirror
+`CodeEditor`. It is a separate entry, so an app that only renders the tree or
+brings its own editor never imports these packages. To use it, install the
+optional peer dependencies:
+
+```bash
+pnpm add @jbpark/ui-kit @uiw/react-codemirror @uiw/codemirror-theme-vscode \
+  @codemirror/lang-javascript @codemirror/merge codemirror
+```
+
+```tsx
+import { FileEditor } from '@jbpark/workbench';
+import { codeEditorRenderer } from '@jbpark/workbench/code-editor';
+
+<div style={{ height: 400 }}>
+  <FileEditor
+    filename={file.name}
+    content={content}
+    onChange={setContent}
+    onSave={save}
+    renderEditor={codeEditorRenderer}
+  />
+</div>;
+```
+
+`codeEditorRenderer` highlights `javascript`, `jsx`, `typescript` and `tsx`,
+and shows every other language as plain text. Add languages with
+`createCodeEditorRenderer`, installing the CodeMirror language packages you
+pass. Create the renderer once, outside render: a new renderer builds new
+language extensions, which reconfigures the editor.
+
+```tsx
+import { json } from '@codemirror/lang-json';
+import { markdown } from '@codemirror/lang-markdown';
+import { createCodeEditorRenderer } from '@jbpark/workbench/code-editor';
+
+const renderEditor = createCodeEditorRenderer({
+  languages: { json: json(), markdown: markdown() },
+});
+```
+
+Pressing Cmd/Ctrl+S in the editor calls `onSave`. The editor's own look and
+themes come from ui-kit; Workbench imports no ui-kit CSS, and its selectors
+stop at `[data-workbench-content]`.
+
+## Another editor
+
+Any function that returns a React node from the contract works as
+`renderEditor`. Engine-specific options stay in the renderer, so the contract
+carries no CodeMirror or Monaco types. `renderEditor` is called during render,
+so keep editor state inside a component that it returns.
+
+```tsx
+import type { WorkbenchEditorRenderer } from '@jbpark/workbench';
+
+const renderTextarea: WorkbenchEditorRenderer = ({
+  content,
+  readOnly,
+  onChange,
+  onSave,
+}) => (
+  <textarea
+    value={content}
+    readOnly={readOnly}
+    onChange={event => onChange(event.target.value)}
+    onKeyDown={event => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+        event.preventDefault();
+        onSave?.(event.currentTarget.value);
+      }
+    }}
+  />
+);
+```

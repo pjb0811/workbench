@@ -1,0 +1,151 @@
+---
+sidebar_position: 5
+title: Adapters
+---
+
+# Adapters
+
+Workbench never knows where its files come from. It talks to a
+`WorkbenchAdapter`, four methods that a local folder, a REST API, a Git host or
+an in-memory store can each implement:
+
+```ts
+interface WorkbenchAdapter {
+  /** Root-level nodes, one level deep. Descendants are not included. */
+  getTree(): Promise<WorkbenchNode[]>;
+  /** The immediate children of a directory node. */
+  loadChildren(node: WorkbenchNode): Promise<WorkbenchNode[]>;
+  /** Read a file's contents. Never called on a directory node. */
+  readFile(node: WorkbenchNode): Promise<string>;
+  /** Persist a file. Rejects when the adapter is read-only. */
+  writeFile(node: WorkbenchNode, content: string): Promise<void>;
+}
+
+interface WorkbenchNode {
+  id: string;
+  name: string;
+  kind: 'file' | 'directory';
+  /** `undefined`: not loaded yet. `[]`: loaded and empty. */
+  children?: WorkbenchNode[];
+}
+```
+
+Loading is lazy by design: `getTree` and `loadChildren` return one level at a
+time, so the first render costs the same for a large repository as for a small
+one. A rejected promise's message is shown in the widget's error area.
+
+## Local folder: `createFsAdapter`
+
+Reads and writes a folder the user picks with the
+[File System Access API](https://developer.mozilla.org/docs/Web/API/File_System_API).
+No server is involved.
+
+```ts
+import { createFsAdapter } from '@jbpark/workbench';
+
+const directory = await window.showDirectoryPicker({ mode: 'readwrite' });
+const adapter = createFsAdapter(directory);
+```
+
+- `showDirectoryPicker` is available only in Chromium-based browsers, and only
+  in a secure context (HTTPS or `localhost`). Check for it before offering the
+  option.
+- The app owns the permission flow: it calls the picker and passes in the
+  handle, so Workbench never shows permission UI itself.
+- Nodes are listed directories first, then by name.
+- In TypeScript, the picker's types come from
+  `@types/wicg-file-system-access`. Workbench's own declarations do not depend
+  on them.
+
+## REST API: `createHttpAdapter`
+
+Reads a tree and files from an HTTP service that already serves them as JSON
+and text.
+
+```ts
+import { createHttpAdapter } from '@jbpark/workbench';
+
+const adapter = createHttpAdapter({
+  treeUrl: '/api/tree',
+  fileUrl: '/api/files/{id}',
+  headers: { Authorization: `Bearer ${token}` },
+});
+```
+
+| Option    | Type                     | Meaning                                                                                        |
+| --------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `treeUrl` | `string`                 | Returns the root nodes as `WorkbenchNode[]`. Children are requested as `treeUrl?parentId=<id>` |
+| `fileUrl` | `string`                 | Returns a file's text. `{id}` is replaced with the URL-encoded node id                         |
+| `headers` | `Record<string, string>` | Extra request headers, such as `Authorization`                                                 |
+
+A non-OK response rejects with `<method> failed: <status>`, for example
+`readFile failed: 404`.
+
+`writeFile` always rejects (`HttpAdapter does not support writeFile by
+default.`): services disagree on how to save (PUT or PATCH, body shape,
+conflict handling), so the adapter does not pick one. Render it with
+`readOnly`, or wrap it and supply your own `writeFile`:
+
+```ts
+const writable: WorkbenchAdapter = {
+  ...createHttpAdapter(options),
+  writeFile: async (node, content) => {
+    const response = await fetch(`/api/files/${encodeURIComponent(node.id)}`, {
+      method: 'PUT',
+      body: content,
+    });
+
+    if (!response.ok) {
+      throw new Error(`writeFile failed: ${response.status}`);
+    }
+  },
+};
+```
+
+## Your own adapter
+
+Any object with the four methods works. This in-memory adapter is a trimmed
+version of the one behind the demos on this site:
+
+```ts
+import type { WorkbenchAdapter, WorkbenchNode } from '@jbpark/workbench';
+
+export function createMemoryAdapter(
+  initialFiles: Record<string, string>,
+): WorkbenchAdapter {
+  const files = { ...initialFiles };
+
+  // Directories come from the paths, one level at a time.
+  const childrenOf = (parent: string): WorkbenchNode[] => {
+    const prefix = parent ? `${parent}/` : '';
+    const kinds = new Map<string, WorkbenchNode['kind']>();
+
+    for (const path of Object.keys(files)) {
+      if (path.startsWith(prefix)) {
+        const [name, ...rest] = path.slice(prefix.length).split('/');
+
+        kinds.set(name, rest.length > 0 ? 'directory' : 'file');
+      }
+    }
+
+    return [...kinds].map(([name, kind]) => ({
+      id: `${prefix}${name}`,
+      name,
+      kind,
+    }));
+  };
+
+  return {
+    getTree: async () => childrenOf(''),
+    loadChildren: async node => childrenOf(node.id),
+    readFile: async node => files[node.id] ?? '',
+    writeFile: async (node, content) => {
+      files[node.id] = content;
+    },
+  };
+}
+```
+
+Keep `WorkbenchNode` plain and serializable. If your source needs handles or
+objects per node, keep them in a map keyed by `id` inside the adapter, as
+`createFsAdapter` does.

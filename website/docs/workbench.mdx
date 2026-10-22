@@ -1,0 +1,102 @@
+---
+sidebar_position: 2
+title: Workbench
+---
+
+import WorkbenchDemo from '@site/src/demo/workbench-demo';
+
+# Workbench
+
+`Workbench` combines the file tree, file tabs and the file editor around one
+adapter. It loads the tree, opens each selected file in a tab, tracks unsaved
+edits per tab, and saves through the adapter.
+
+<WorkbenchDemo />
+
+The demo uses an in-memory adapter, `codeEditorRenderer` with JSON and Markdown
+added, lucide icons, and the stylesheet in this site's `src/css/demo.css`. Try
+editing a file and pressing Ctrl+S (Cmd+S on macOS), turning on "Fail saves"
+and saving, dragging tabs, and dragging the separator.
+
+```tsx
+import { Workbench } from '@jbpark/workbench';
+import { codeEditorRenderer } from '@jbpark/workbench/code-editor';
+
+<div style={{ height: 480 }}>
+  <Workbench adapter={adapter} renderEditor={codeEditorRenderer} />
+</div>;
+```
+
+## Props
+
+| Prop           | Type                      | Meaning                                                                                         |
+| -------------- | ------------------------- | ----------------------------------------------------------------------------------------------- |
+| `adapter`      | `WorkbenchAdapter`        | Data source. Replacing it reloads the tree and closes every tab. See [Adapters](./adapters.mdx) |
+| `renderEditor` | `WorkbenchEditorRenderer` | Editor to render. See [File editor](./file-editor.mdx)                                          |
+| `readOnly`     | `boolean`                 | View files without editing. Defaults to `false`                                                 |
+| `renderIcon`   | `FileTreeIconRenderer`    | Tree and tab icons. See [File tree](./file-tree.mdx#icons)                                      |
+| `colorTheme`   | `'dark' \| 'light'`       | Color scheme. Defaults to `'dark'`                                                              |
+
+## Behavior
+
+- **Saving.** The save button saves the active tab and is enabled while it has
+  unsaved edits. Cmd/Ctrl+S in the editor saves the editor's latest text
+  through the same path. A save stays tied to its tab even if you switch tabs
+  while it runs. A successful `adapter.writeFile` clears the unsaved state; a
+  failed one keeps it and shows the error.
+- **Errors.** Failures from `getTree`, `loadChildren`, `readFile` and
+  `writeFile` show the adapter's message in `[data-workbench-error]` with
+  `role="alert"`. The message is cleared when the next file is opened or
+  saved.
+- **Read-only.** With `readOnly`, files still open, but the editor receives
+  `readOnly: true`, no save button is rendered, edits and save shortcuts are
+  ignored even from an editor that does not honor `readOnly`, and
+  `adapter.writeFile` is never called. Use it for sources that cannot be
+  written, such as `createHttpAdapter`.
+- **Tabs.** Each opened file gets a tab that keeps its own content and unsaved
+  edits. Selecting a file that is already open activates its tab without
+  reading it again. Closing the active tab activates the tab to its right, or
+  to its left when it was last. Closing a tab discards its unsaved edits. Drag
+  a tab onto another to move it there (native HTML drag and drop); a middle
+  click closes it. Tab icons come from `renderIcon`, called with
+  `expanded: false`.
+- **Theme.** `colorTheme` sets `data-theme` on the root and is passed to the
+  editor renderer as `theme`, so the tree, tabs and editor switch together.
+  Workbench defines no colors: write them under `[data-theme='dark']` and
+  `[data-theme='light']`. Changing the theme keeps open tabs and unsaved
+  edits. The demo above follows this site's theme toggle.
+- **Resizing.** A separator between the tree and the editor resizes the
+  sidebar. Drag it with a mouse, touch or pen, or focus it and use the arrow
+  keys (1% per press), Home (narrowest) and End (widest). The sidebar starts
+  at 20% of the widget width and stays between 15% and 50%. Its width is set
+  inline, so consumer CSS should not set one.
+
+## Layout
+
+Workbench ships no CSS. Give it a parent with a height, then lay out its
+regions through their attributes; the tree only renders with a bounded height.
+A minimal layout:
+
+```css
+[data-workbench] {
+  display: flex;
+  height: 100%;
+}
+[data-workbench-resize-handle] {
+  width: 4px;
+  cursor: col-resize;
+}
+[data-workbench-main] {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+[data-workbench-editor],
+[data-workbench-content] {
+  flex: 1;
+  min-height: 0;
+}
+```
+
+[Styling](./styling.mdx) lists every attribute and has a complete stylesheet.

@@ -1,0 +1,275 @@
+/* Styles for the live Workbench demos. Workbench ships no CSS, so these
+   rules are what a consuming app would write; they key on its data-*
+   attributes and use Infima's tokens so the demos follow the site theme. */
+
+.demo-workbench {
+  --demo-border: var(--ifm-color-emphasis-300);
+  --demo-panel: var(--ifm-color-emphasis-100);
+  --demo-hover: var(--ifm-color-emphasis-200);
+  --demo-selected: var(--ifm-color-emphasis-200);
+  --demo-muted: var(--ifm-color-emphasis-600);
+  --demo-accent: #1a73e8;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: var(--ifm-leading);
+}
+
+[data-theme='dark'] .demo-workbench {
+  --demo-accent: #3794ff;
+}
+
+.demo-workbench-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.demo-workbench-frame {
+  height: 24rem;
+  overflow: hidden;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--ifm-global-radius);
+  font-size: 0.875rem;
+}
+
+.demo-workbench-frame--short {
+  height: 16rem;
+}
+
+.demo-workbench button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.demo-workbench [data-workbench] {
+  display: flex;
+  height: 100%;
+}
+
+.demo-workbench [data-workbench][data-resizing] {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.demo-workbench [data-workbench-sidebar] {
+  padding: 4px 0;
+  background: var(--demo-panel);
+}
+
+.demo-workbench [data-workbench-resize-handle] {
+  flex: none;
+  width: 4px;
+  cursor: col-resize;
+  background: var(--demo-border);
+  outline: none;
+}
+
+.demo-workbench [data-workbench-resize-handle]:hover,
+.demo-workbench [data-workbench-resize-handle]:focus-visible,
+.demo-workbench [data-workbench-resize-handle][data-dragging] {
+  background: var(--demo-accent);
+}
+
+.demo-workbench [data-workbench-main] {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.demo-workbench [data-workbench-tree] {
+  height: 100%;
+}
+
+.demo-workbench [data-workbench-tree][data-loading] {
+  opacity: 0.6;
+}
+
+.demo-workbench [data-workbench-node] {
+  /* Truncate long names instead of scrolling the tree sideways. */
+  min-width: 0 !important;
+  cursor: pointer;
+  outline: none;
+}
+
+.demo-workbench [data-workbench-node]:hover {
+  background: var(--demo-hover);
+}
+
+.demo-workbench [data-workbench-node][data-selected] {
+  background: var(--demo-selected);
+}
+
+.demo-workbench [data-workbench-node]:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--demo-accent);
+}
+
+.demo-workbench [data-workbench-node-content] {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 100%;
+  padding-right: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.demo-workbench [data-workbench-node-arrow] {
+  width: 12px;
+  color: var(--demo-muted);
+  text-align: center;
+}
+
+/* Indentation is an inline padding-left, so files line up with directory
+   names through a margin instead. */
+.demo-workbench
+  [data-workbench-node][data-kind='file']
+  [data-workbench-node-content]
+  > :first-child {
+  margin-left: 16px;
+}
+
+.demo-workbench [data-workbench-node-icon],
+.demo-workbench [data-workbench-tab-icon] {
+  display: inline-flex;
+}
+
+.demo-workbench [data-workbench-node-name] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.demo-workbench [data-workbench-tabs] {
+  display: flex;
+  overflow-x: auto;
+  background: var(--demo-panel);
+  border-bottom: 1px solid var(--demo-border);
+}
+
+.demo-workbench [data-workbench-tab] {
+  display: flex;
+  flex: none;
+  align-items: center;
+  color: var(--demo-muted);
+  border-right: 1px solid var(--demo-border);
+}
+
+.demo-workbench [data-workbench-tab][data-active] {
+  color: var(--ifm-font-color-base);
+  background: var(--ifm-background-color);
+}
+
+.demo-workbench [data-workbench-tab][data-dragging] {
+  opacity: 0.5;
+}
+
+.demo-workbench [data-workbench-tab][data-drop-target] {
+  box-shadow: inset 2px 0 var(--demo-accent);
+}
+
+.demo-workbench [data-workbench-tab] button {
+  border: none;
+  background: none;
+}
+
+.demo-workbench [data-workbench-tab-label] {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 4px 6px 12px;
+}
+
+.demo-workbench [data-workbench-tab-close] {
+  margin-right: 4px;
+  border-radius: 3px;
+  opacity: 0.6;
+}
+
+.demo-workbench [data-workbench-tab-close]:hover {
+  background: var(--demo-hover);
+  opacity: 1;
+}
+
+/* A dot replaces the close mark on unsaved tabs until hovered. */
+.demo-workbench
+  [data-workbench-tab][data-dirty]:not(:hover)
+  [data-workbench-tab-close] {
+  font-size: 0;
+}
+
+.demo-workbench
+  [data-workbench-tab][data-dirty]:not(:hover)
+  [data-workbench-tab-close]::before {
+  font-size: 14px;
+  content: '●';
+}
+
+.demo-workbench [data-workbench-save] {
+  align-self: flex-start;
+  margin: 8px;
+  padding: 2px 12px;
+  border: 1px solid var(--demo-border);
+  border-radius: 4px;
+  background: var(--demo-panel);
+}
+
+.demo-workbench [data-workbench-save][data-dirty] {
+  color: var(--demo-accent);
+  border-color: var(--demo-accent);
+}
+
+.demo-workbench [data-workbench-save]:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.demo-workbench [data-workbench-error] {
+  margin: 0 8px 8px;
+  padding: 8px 12px;
+  color: #c62828;
+  background: #c628281a;
+  border-radius: 4px;
+}
+
+.demo-workbench [data-workbench-empty] {
+  margin: auto;
+  color: var(--demo-muted);
+}
+
+.demo-workbench [data-workbench-editor],
+.demo-workbench [data-workbench-content] {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.demo-workbench [data-workbench-content] > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Standalone FileEditor demo with the textarea renderer. */
+.demo-workbench textarea.demo-textarea {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  font-family: var(--ifm-font-family-monospace);
+  color: inherit;
+  background: transparent;
+  border: none;
+  resize: none;
+  outline: none;
+}
+
+.demo-workbench-log {
+  margin: 0;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8125rem;
+  color: var(--demo-muted);
+}

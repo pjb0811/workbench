@@ -13,7 +13,7 @@
   ],
   "license": "MIT",
   "author": "jbpark (https://github.com/pjb0811)",
-  "homepage": "https://github.com/pjb0811/workbench#readme",
+  "homepage": "https://workbench-guide.vercel.app",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pjb0811/workbench.git"
