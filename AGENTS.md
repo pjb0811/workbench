@@ -28,7 +28,7 @@ Write comments for someone reading the code now: say what the code does first, g
 
 ## Shared skills
 
-Procedures shared by every pjb0811 repository are global Claude Code skills in the private repository `pjb0811/skills`. Agents that can't read them follow the summaries in this file.
+Procedures shared by every pjb0811 repository are global Claude Code skills in the public repository [`pjb0811/skills`](https://github.com/pjb0811/skills), and the shared decisions are in its [`global/CLAUDE.md`](https://github.com/pjb0811/skills/blob/main/global/CLAUDE.md). Agents without them installed follow the summaries in this file.
 
 | Skill                                 | Use                                                                                                                                                                            |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -37,6 +37,7 @@ Procedures shared by every pjb0811 repository are global Claude Code skills in t
 | `changesets-release`, `publish-check` | Release flow and pre-release checks                                                                                                                                            |
 | `shared-library-first`                | Reusable UI goes to ui-kit and hooks to use-hooks first                                                                                                                        |
 | `ref-verification`                    | Read repository state from git refs, not the worktree                                                                                                                          |
+| `repo-settings`                       | Align the repository's GitHub settings (merge methods, auto-merge, default-branch ruleset) with the standard                                                                   |
 
 ### Commit messages
 
