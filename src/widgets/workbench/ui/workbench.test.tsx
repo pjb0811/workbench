@@ -454,6 +454,113 @@ describe('Workbench', () => {
       ).toBeTruthy();
     });
 
+    describe('onBeforeCloseTab', () => {
+      const closeButton = (name: string) =>
+        screen.getByRole('button', { name: `Close ${name} (unsaved)` });
+
+      it('keeps a dirty tab open when it returns false', async () => {
+        const adapter = createAdapter({ 'a.ts': 'a' });
+        const onBeforeCloseTab = vi.fn(() => false);
+
+        render(
+          <Workbench
+            adapter={adapter}
+            renderEditor={renderTextarea}
+            onBeforeCloseTab={onBeforeCloseTab}
+          />,
+        );
+
+        fireEvent.change(await openFile('a.ts'), { target: { value: 'a2' } });
+        fireEvent.click(closeButton('a.ts'));
+        fireEvent(
+          screen.getByRole('tab', { name: 'a.ts' }),
+          new MouseEvent('auxclick', { bubbles: true, button: 1 }),
+        );
+
+        expect(onBeforeCloseTab).toHaveBeenCalledTimes(2);
+        expect(onBeforeCloseTab).toHaveBeenCalledWith({
+          node: file('a.ts'),
+          content: 'a2',
+        });
+        expect(tabNames()).toEqual(['a.ts']);
+        expect(tabFor('a.ts').getAttribute('data-dirty')).toBe('true');
+        expect(screen.getByRole('textbox', { name: 'a.ts' })).toHaveProperty(
+          'value',
+          'a2',
+        );
+      });
+
+      it('waits for a promise once, then closes and activates the neighbor', async () => {
+        const answer = deferred<boolean>();
+        const adapter = createAdapter({ 'a.ts': 'a', 'b.ts': 'b' });
+        const onBeforeCloseTab = vi.fn(() => answer.promise);
+
+        render(
+          <Workbench
+            adapter={adapter}
+            renderEditor={renderTextarea}
+            onBeforeCloseTab={onBeforeCloseTab}
+          />,
+        );
+
+        await openFile('a.ts');
+        fireEvent.change(await openFile('b.ts'), {
+          target: { value: 'b2' },
+        });
+        fireEvent.click(screen.getByRole('tab', { name: 'a.ts' }));
+        fireEvent.click(screen.getByRole('tab', { name: 'b.ts' }));
+        fireEvent.click(closeButton('b.ts'));
+        fireEvent.click(closeButton('b.ts'));
+
+        expect(onBeforeCloseTab).toHaveBeenCalledOnce();
+        expect(tabNames()).toEqual(['a.ts', 'b.ts']);
+
+        await act(async () => answer.resolve(true));
+
+        expect(tabNames()).toEqual(['a.ts']);
+        expect(activeTab()).toBe('a.ts');
+      });
+
+      it('closes clean tabs without asking', async () => {
+        const adapter = createAdapter({ 'a.ts': 'a' });
+        const onBeforeCloseTab = vi.fn(() => false);
+
+        render(
+          <Workbench
+            adapter={adapter}
+            renderEditor={renderTextarea}
+            onBeforeCloseTab={onBeforeCloseTab}
+          />,
+        );
+
+        await openFile('a.ts');
+        fireEvent.click(screen.getByRole('button', { name: 'Close a.ts' }));
+
+        expect(onBeforeCloseTab).not.toHaveBeenCalled();
+        expect(screen.queryByRole('tablist')).toBeNull();
+      });
+
+      it('keeps the tab open and shows the message when it rejects', async () => {
+        const adapter = createAdapter({ 'a.ts': 'a' });
+
+        render(
+          <Workbench
+            adapter={adapter}
+            renderEditor={renderTextarea}
+            onBeforeCloseTab={() => Promise.reject(new Error('prompt failed'))}
+          />,
+        );
+
+        fireEvent.change(await openFile('a.ts'), { target: { value: 'a2' } });
+        fireEvent.click(closeButton('a.ts'));
+
+        expect((await screen.findByRole('alert')).textContent).toBe(
+          'prompt failed',
+        );
+        expect(tabNames()).toEqual(['a.ts']);
+      });
+    });
+
     it('reorders tabs by dragging one onto another', async () => {
       const adapter = createAdapter({ 'a.ts': 'a', 'b.ts': 'b', 'c.ts': 'c' });
 

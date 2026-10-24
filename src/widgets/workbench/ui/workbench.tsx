@@ -35,6 +35,17 @@ export interface WorkbenchProps {
    * editor renderer as `theme`. Defaults to `'dark'`.
    */
   colorTheme?: WorkbenchColorTheme;
+  /**
+   * Called before a tab with unsaved edits closes from its close button or a
+   * middle click. Return `false`, or a promise of `false`, to keep the tab
+   * open; a thrown error or rejection also keeps it open and is shown as the
+   * error. Not called for clean tabs, in read-only mode, or when replacing
+   * `adapter` closes every tab.
+   */
+  onBeforeCloseTab?: (tab: {
+    node: WorkbenchNode;
+    content: string;
+  }) => boolean | Promise<boolean>;
 }
 
 // Everything that belongs to one adapter. Responses from a replaced adapter
@@ -71,9 +82,11 @@ export const Workbench = ({
   readOnly = false,
   renderIcon,
   colorTheme = 'dark',
+  onBeforeCloseTab,
 }: WorkbenchProps) => {
   const [session, setSession] = useState(() => createSession(adapter));
   const savingRef = useRef(new Set<string>());
+  const closingRef = useRef(new Set<string>());
   const sidebarId = useId();
   const sidebar = useSplitResize(SIDEBAR_SIZE);
 
@@ -228,6 +241,44 @@ export const Workbench = ({
     }
   };
 
+  // Closing a dirty tab waits for `onBeforeCloseTab`. While its answer is
+  // pending, the tab stays open and further close requests for it are ignored.
+  const requestClose = async (id: string) => {
+    const tab = session.tabs.find(item => item.node.id === id);
+
+    if (!tab || closingRef.current.has(id)) {
+      return;
+    }
+
+    const close = () =>
+      update(adapter, current => ({
+        ...current,
+        ...closeTab(current.tabs, current.activeTabId, id),
+      }));
+
+    if (readOnly || !isDirty(tab) || !onBeforeCloseTab) {
+      close();
+
+      return;
+    }
+
+    closingRef.current.add(id);
+
+    try {
+      const result = onBeforeCloseTab({ node: tab.node, content: tab.content });
+      // A boolean closes in the same event, without waiting a microtask.
+      const isAllowed = typeof result === 'boolean' ? result : await result;
+
+      if (isAllowed) {
+        close();
+      }
+    } catch (reason) {
+      update(adapter, current => ({ ...current, error: toMessage(reason) }));
+    } finally {
+      closingRef.current.delete(id);
+    }
+  };
+
   const { tabs, activeTabId, error } = session;
   const activeTab = tabs.find(tab => tab.node.id === activeTabId);
   const isActiveDirty = activeTab !== undefined && isDirty(activeTab);
@@ -280,12 +331,7 @@ export const Workbench = ({
             onActivate={id =>
               setSession(current => ({ ...current, activeTabId: id }))
             }
-            onClose={id =>
-              setSession(current => ({
-                ...current,
-                ...closeTab(current.tabs, current.activeTabId, id),
-              }))
-            }
+            onClose={id => void requestClose(id)}
             onReorder={(fromId, toId) =>
               setSession(current => ({
                 ...current,
