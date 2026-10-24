@@ -29,13 +29,14 @@ import { codeEditorRenderer } from '@jbpark/workbench/code-editor';
 
 ## Props
 
-| Prop           | Type                      | Meaning                                                                                         |
-| -------------- | ------------------------- | ----------------------------------------------------------------------------------------------- |
-| `adapter`      | `WorkbenchAdapter`        | Data source. Replacing it reloads the tree and closes every tab. See [Adapters](./adapters.mdx) |
-| `renderEditor` | `WorkbenchEditorRenderer` | Editor to render. See [File editor](./file-editor.mdx)                                          |
-| `readOnly`     | `boolean`                 | View files without editing. Defaults to `false`                                                 |
-| `renderIcon`   | `FileTreeIconRenderer`    | Tree and tab icons. See [File tree](./file-tree.mdx#icons)                                      |
-| `colorTheme`   | `'dark' \| 'light'`       | Color scheme. Defaults to `'dark'`                                                              |
+| Prop               | Type                                                                             | Meaning                                                                                                |
+| ------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `adapter`          | `WorkbenchAdapter`                                                               | Data source. Replacing it reloads the tree and closes every tab. See [Adapters](./adapters.mdx)        |
+| `renderEditor`     | `WorkbenchEditorRenderer`                                                        | Editor to render. See [File editor](./file-editor.mdx)                                                 |
+| `readOnly`         | `boolean`                                                                        | View files without editing. Defaults to `false`                                                        |
+| `renderIcon`       | `FileTreeIconRenderer`                                                           | Tree and tab icons. See [File tree](./file-tree.mdx#icons)                                             |
+| `colorTheme`       | `'dark' \| 'light'`                                                              | Color scheme. Defaults to `'dark'`                                                                     |
+| `onBeforeCloseTab` | `(tab: { node: WorkbenchNode; content: string }) => boolean \| Promise<boolean>` | Runs before a tab with unsaved edits closes. Return `false` to keep it open. See [Behavior](#behavior) |
 
 ## Behavior
 
@@ -56,10 +57,31 @@ import { codeEditorRenderer } from '@jbpark/workbench/code-editor';
 - **Tabs.** Each opened file gets a tab that keeps its own content and unsaved
   edits. Selecting a file that is already open activates its tab without
   reading it again. Closing the active tab activates the tab to its right, or
-  to its left when it was last. Closing a tab discards its unsaved edits. Drag
-  a tab onto another to move it there (native HTML drag and drop); a middle
-  click closes it. Tab icons come from `renderIcon`, called with
-  `expanded: false`.
+  to its left when it was last. Drag a tab onto another to move it there
+  (native HTML drag and drop); a middle click closes it. Tab icons come from
+  `renderIcon`, called with `expanded: false`.
+- **Closing unsaved tabs.** Closing a tab discards its unsaved edits unless
+  `onBeforeCloseTab` stops it. Both the close button and a middle click call
+  it for a dirty tab with the tab's file and current content; clean tabs close
+  without it. Return `false` (or a promise of `false`) to keep the tab, or
+  `true` to close it. The tab stays open while a returned promise is pending,
+  and closing it again meanwhile does not call the callback a second time. A
+  thrown error or rejection keeps the tab open and shows its message in
+  `[data-workbench-error]`. Workbench ships no dialog, so ask with
+  `window.confirm`, your own modal, or save first:
+
+  ```tsx
+  <Workbench
+    adapter={adapter}
+    renderEditor={codeEditorRenderer}
+    onBeforeCloseTab={({ node }) =>
+      window.confirm(`Discard unsaved changes to ${node.name}?`)
+    }
+  />
+  ```
+
+  Replacing `adapter` still closes every tab without calling it.
+
 - **Theme.** `colorTheme` sets `data-theme` on the root and is passed to the
   editor renderer as `theme`, so the tree, tabs and editor switch together.
   Workbench defines no colors: write them under `[data-theme='dark']` and
