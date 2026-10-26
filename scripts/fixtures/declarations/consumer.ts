@@ -48,6 +48,12 @@ renderEditor({
 const colorTheme: WorkbenchColorTheme = 'light';
 
 Workbench({ adapter, renderEditor, readOnly: true, renderIcon, colorTheme });
+Workbench({
+  adapter,
+  renderEditor,
+  onBeforeCloseTab: async ({ node, content }) =>
+    content === '' || node.kind === 'file',
+});
 FileEditor({
   filename: node.name,
   content: 'content',
