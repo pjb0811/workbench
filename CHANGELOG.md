@@ -1,5 +1,11 @@
 # @jbpark/workbench
 
+## 0.2.0
+
+### Minor Changes
+
+- 057c96e: Add `onBeforeCloseTab` to `Workbench`, so a consumer can confirm or cancel closing a tab with unsaved edits. Without it, closing still discards the edits as before.
+
 ## 0.1.0
 
 ### Minor Changes
