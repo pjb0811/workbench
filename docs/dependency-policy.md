@@ -50,9 +50,9 @@ Tab reordering (#2) uses native HTML drag and drop instead of a drag library.
 `@dnd-kit` would have added about 58 kB (17 kB gzip) to the main entry for that
 one interaction.
 
-Sidebar resizing (#13) is likewise a pointer and keyboard separator in
-`src/shared/lib/use-split-resize` instead of `react-resizable-panels`, which
-ships 97 kB (27 kB gzip) unminified.
+Sidebar resizing (#13) is likewise a pointer and keyboard separator from
+`useSplitResize` in `@jbpark/use-hooks` instead of `react-resizable-panels`,
+which ships 97 kB (27 kB gzip) unminified.
 
 ### 3. Not a dependency at all — the consumer supplies it
 

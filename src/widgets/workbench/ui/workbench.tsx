@@ -1,4 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+
+import { useSplitResize } from '@jbpark/use-hooks';
 
 import {
   FileEditor,
@@ -10,10 +12,20 @@ import { FileTree, type FileTreeIconRenderer } from '@/features/file-tree';
 import type { WorkbenchAdapter } from '@/entities/adapter';
 import type { WorkbenchNode } from '@/entities/node';
 
-import { useSplitResize } from '@/shared/lib';
-
 import { type OpenTab, closeTab, isDirty, moveTab } from '../model/open-tabs';
 import { FileTabs } from './file-tabs';
+
+export interface WorkbenchLayoutProps {
+  /** The file tree region, `[data-workbench-sidebar]`. */
+  sidebar: ReactNode;
+  /**
+   * The tabs, save button, error and editor or empty state,
+   * `[data-workbench-main]`.
+   */
+  main: ReactNode;
+  /** The `id` of the sidebar region, for a separator's `aria-controls`. */
+  sidebarId: string;
+}
 
 export interface WorkbenchProps {
   /** Data source for the tree and the files. Replacing it reloads the tree. */
@@ -46,6 +58,26 @@ export interface WorkbenchProps {
     node: WorkbenchNode;
     content: string;
   }) => boolean | Promise<boolean>;
+  /**
+   * Initial sidebar width, in percent of the widget width. Defaults to 20 and
+   * is clamped to the limits. Changing it after mount has no effect.
+   */
+  defaultSidebarSize?: number;
+  /** Narrowest sidebar width, in percent. Defaults to 15. */
+  minSidebarSize?: number;
+  /** Widest sidebar width, in percent. Defaults to 50. */
+  maxSidebarSize?: number;
+  /**
+   * Called with the new sidebar width when a drag or key press that changed
+   * it ends, e.g. to persist it. Not called with `renderLayout`.
+   */
+  onSidebarResize?: (size: number) => void;
+  /**
+   * Arranges the sidebar and main regions instead of the built-in layout.
+   * Without it, Workbench renders the sidebar, a resize separator and the
+   * main region side by side.
+   */
+  renderLayout?: (props: WorkbenchLayoutProps) => ReactNode;
 }
 
 // Everything that belongs to one adapter. Responses from a replaced adapter
@@ -70,9 +102,6 @@ const createSession = (adapter: WorkbenchAdapter): Session => ({
   savingIds: [],
 });
 
-// Sidebar width limits, in percent of the widget width.
-const SIDEBAR_SIZE = { defaultSize: 20, minSize: 15, maxSize: 50 };
-
 const toMessage = (reason: unknown) =>
   reason instanceof Error ? reason.message : String(reason);
 
@@ -83,12 +112,27 @@ export const Workbench = ({
   renderIcon,
   colorTheme = 'dark',
   onBeforeCloseTab,
+  defaultSidebarSize = 20,
+  minSidebarSize = 15,
+  maxSidebarSize = 50,
+  onSidebarResize,
+  renderLayout,
 }: WorkbenchProps) => {
   const [session, setSession] = useState(() => createSession(adapter));
   const savingRef = useRef(new Set<string>());
   const closingRef = useRef(new Set<string>());
   const sidebarId = useId();
-  const sidebar = useSplitResize(SIDEBAR_SIZE);
+  const sidebar = useSplitResize({
+    // The hook reads `defaultSize` only on mount and clamps only on input, so
+    // a saved width outside the limits is clamped here.
+    defaultSize: Math.min(
+      maxSidebarSize,
+      Math.max(minSidebarSize, defaultSidebarSize),
+    ),
+    minSize: minSidebarSize,
+    maxSize: maxSidebarSize,
+    onResizeEnd: onSidebarResize,
+  });
 
   if (session.adapter !== adapter) {
     setSession(createSession(adapter));
@@ -283,6 +327,97 @@ export const Workbench = ({
   const activeTab = tabs.find(tab => tab.node.id === activeTabId);
   const isActiveDirty = activeTab !== undefined && isDirty(activeTab);
 
+  const tree = (
+    <FileTree
+      nodes={session.nodes}
+      selectedId={session.openingId ?? activeTabId}
+      loading={session.treeLoading}
+      renderIcon={renderIcon}
+      onSelect={node => void openFile(node)}
+      onExpand={node => adapter.loadChildren(node)}
+      onError={reason =>
+        setSession(current => ({ ...current, error: reason.message }))
+      }
+    />
+  );
+  const mainRegion = (
+    <div data-workbench-main aria-busy={session.openingId !== undefined}>
+      {tabs.length > 0 && (
+        <FileTabs
+          tabs={tabs.map(tab => ({
+            node: tab.node,
+            dirty: !readOnly && isDirty(tab),
+          }))}
+          activeTabId={activeTabId}
+          renderIcon={renderIcon}
+          onActivate={id =>
+            setSession(current => ({ ...current, activeTabId: id }))
+          }
+          onClose={id => void requestClose(id)}
+          onReorder={(fromId, toId) =>
+            setSession(current => ({
+              ...current,
+              tabs: moveTab(current.tabs, fromId, toId),
+            }))
+          }
+        />
+      )}
+      {!readOnly && activeTab && (
+        <button
+          type="button"
+          data-workbench-save
+          data-dirty={isActiveDirty || undefined}
+          disabled={
+            !isActiveDirty || session.savingIds.includes(activeTab.node.id)
+          }
+          onClick={() => void save(activeTab.node.id, activeTab.content)}
+        >
+          Save
+        </button>
+      )}
+      {error && (
+        <div role="alert" data-workbench-error>
+          {error}
+        </div>
+      )}
+      {activeTab ? (
+        <FileEditor
+          // A new editor per tab, so undo history never crosses files.
+          key={activeTab.node.id}
+          filename={activeTab.node.name}
+          content={activeTab.content}
+          readOnly={readOnly}
+          theme={colorTheme}
+          onChange={content => changeContent(activeTab.node.id, content)}
+          onSave={content => void save(activeTab.node.id, content)}
+          renderEditor={renderEditor}
+        />
+      ) : (
+        <div data-workbench-empty>Select a file to open it.</div>
+      )}
+    </div>
+  );
+
+  if (renderLayout) {
+    return (
+      <div
+        data-workbench
+        data-theme={colorTheme}
+        data-readonly={readOnly || undefined}
+      >
+        {renderLayout({
+          sidebar: (
+            <div id={sidebarId} data-workbench-sidebar>
+              {tree}
+            </div>
+          ),
+          main: mainRegion,
+          sidebarId,
+        })}
+      </div>
+    );
+  }
+
   return (
     <div
       ref={sidebar.containerRef}
@@ -298,17 +433,7 @@ export const Workbench = ({
         // left to consumer CSS.
         style={{ width: `${sidebar.size}%`, flexShrink: 0 }}
       >
-        <FileTree
-          nodes={session.nodes}
-          selectedId={session.openingId ?? activeTabId}
-          loading={session.treeLoading}
-          renderIcon={renderIcon}
-          onSelect={node => void openFile(node)}
-          onExpand={node => adapter.loadChildren(node)}
-          onError={reason =>
-            setSession(current => ({ ...current, error: reason.message }))
-          }
-        />
+        {tree}
       </div>
       <div
         {...sidebar.separatorProps}
@@ -319,61 +444,7 @@ export const Workbench = ({
         // Without it, a touch drag scrolls the page instead of resizing.
         style={{ touchAction: 'none' }}
       />
-      <div data-workbench-main aria-busy={session.openingId !== undefined}>
-        {tabs.length > 0 && (
-          <FileTabs
-            tabs={tabs.map(tab => ({
-              node: tab.node,
-              dirty: !readOnly && isDirty(tab),
-            }))}
-            activeTabId={activeTabId}
-            renderIcon={renderIcon}
-            onActivate={id =>
-              setSession(current => ({ ...current, activeTabId: id }))
-            }
-            onClose={id => void requestClose(id)}
-            onReorder={(fromId, toId) =>
-              setSession(current => ({
-                ...current,
-                tabs: moveTab(current.tabs, fromId, toId),
-              }))
-            }
-          />
-        )}
-        {!readOnly && activeTab && (
-          <button
-            type="button"
-            data-workbench-save
-            data-dirty={isActiveDirty || undefined}
-            disabled={
-              !isActiveDirty || session.savingIds.includes(activeTab.node.id)
-            }
-            onClick={() => void save(activeTab.node.id, activeTab.content)}
-          >
-            Save
-          </button>
-        )}
-        {error && (
-          <div role="alert" data-workbench-error>
-            {error}
-          </div>
-        )}
-        {activeTab ? (
-          <FileEditor
-            // A new editor per tab, so undo history never crosses files.
-            key={activeTab.node.id}
-            filename={activeTab.node.name}
-            content={activeTab.content}
-            readOnly={readOnly}
-            theme={colorTheme}
-            onChange={content => changeContent(activeTab.node.id, content)}
-            onSave={content => void save(activeTab.node.id, content)}
-            renderEditor={renderEditor}
-          />
-        ) : (
-          <div data-workbench-empty>Select a file to open it.</div>
-        )}
-      </div>
+      {mainRegion}
     </div>
   );
 };

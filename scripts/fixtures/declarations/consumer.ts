@@ -7,6 +7,7 @@ import {
   type WorkbenchColorTheme,
   type WorkbenchEditorLanguage,
   type WorkbenchEditorRenderer,
+  type WorkbenchLayoutProps,
   type WorkbenchNode,
   createFsAdapter,
   createHttpAdapter,
@@ -53,6 +54,21 @@ Workbench({
   renderEditor,
   onBeforeCloseTab: async ({ node, content }) =>
     content === '' || node.kind === 'file',
+});
+const renderLayout = ({ sidebar, main, sidebarId }: WorkbenchLayoutProps) => [
+  sidebarId,
+  sidebar,
+  main,
+];
+
+Workbench({
+  adapter,
+  renderEditor,
+  defaultSidebarSize: 30,
+  minSidebarSize: 10,
+  maxSidebarSize: 60,
+  onSidebarResize: size => size.toFixed(1),
+  renderLayout,
 });
 FileEditor({
   filename: node.name,

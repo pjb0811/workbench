@@ -29,14 +29,19 @@ import { codeEditorRenderer } from '@jbpark/workbench/code-editor';
 
 ## Props
 
-| Prop               | Type                                                                             | Meaning                                                                                                |
-| ------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `adapter`          | `WorkbenchAdapter`                                                               | Data source. Replacing it reloads the tree and closes every tab. See [Adapters](./adapters.mdx)        |
-| `renderEditor`     | `WorkbenchEditorRenderer`                                                        | Editor to render. See [File editor](./file-editor.mdx)                                                 |
-| `readOnly`         | `boolean`                                                                        | View files without editing. Defaults to `false`                                                        |
-| `renderIcon`       | `FileTreeIconRenderer`                                                           | Tree and tab icons. See [File tree](./file-tree.mdx#icons)                                             |
-| `colorTheme`       | `'dark' \| 'light'`                                                              | Color scheme. Defaults to `'dark'`                                                                     |
-| `onBeforeCloseTab` | `(tab: { node: WorkbenchNode; content: string }) => boolean \| Promise<boolean>` | Runs before a tab with unsaved edits closes. Return `false` to keep it open. See [Behavior](#behavior) |
+| Prop                 | Type                                                                             | Meaning                                                                                                |
+| -------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `adapter`            | `WorkbenchAdapter`                                                               | Data source. Replacing it reloads the tree and closes every tab. See [Adapters](./adapters.mdx)        |
+| `renderEditor`       | `WorkbenchEditorRenderer`                                                        | Editor to render. See [File editor](./file-editor.mdx)                                                 |
+| `readOnly`           | `boolean`                                                                        | View files without editing. Defaults to `false`                                                        |
+| `renderIcon`         | `FileTreeIconRenderer`                                                           | Tree and tab icons. See [File tree](./file-tree.mdx#icons)                                             |
+| `colorTheme`         | `'dark' \| 'light'`                                                              | Color scheme. Defaults to `'dark'`                                                                     |
+| `onBeforeCloseTab`   | `(tab: { node: WorkbenchNode; content: string }) => boolean \| Promise<boolean>` | Runs before a tab with unsaved edits closes. Return `false` to keep it open. See [Behavior](#behavior) |
+| `defaultSidebarSize` | `number`                                                                         | Initial sidebar width in percent of the widget. Defaults to `20`. See [Behavior](#behavior)            |
+| `minSidebarSize`     | `number`                                                                         | Narrowest sidebar width in percent. Defaults to `15`                                                   |
+| `maxSidebarSize`     | `number`                                                                         | Widest sidebar width in percent. Defaults to `50`                                                      |
+| `onSidebarResize`    | `(size: number) => void`                                                         | Called when a drag or key press that changed the sidebar width ends                                    |
+| `renderLayout`       | `(props: WorkbenchLayoutProps) => ReactNode`                                     | Arranges the tree and the editor instead of the built-in layout. See [Custom layout](#custom-layout)   |
 
 ## Behavior
 
@@ -90,8 +95,21 @@ import { codeEditorRenderer } from '@jbpark/workbench/code-editor';
 - **Resizing.** A separator between the tree and the editor resizes the
   sidebar. Drag it with a mouse, touch or pen, or focus it and use the arrow
   keys (1% per press), Home (narrowest) and End (widest). The sidebar starts
-  at 20% of the widget width and stays between 15% and 50%. Its width is set
-  inline, so consumer CSS should not set one.
+  at `defaultSidebarSize` (20% of the widget width) and stays between
+  `minSidebarSize` (15%) and `maxSidebarSize` (50%); a default outside the
+  limits starts at the nearest one. Its width is set inline, so consumer CSS
+  should not set one. `onSidebarResize` receives the new width once per drag
+  or key press that changed it, so a saved width can come back as
+  `defaultSidebarSize`:
+
+  ```tsx
+  <Workbench
+    adapter={adapter}
+    renderEditor={codeEditorRenderer}
+    defaultSidebarSize={Number(localStorage.getItem('sidebar')) || undefined}
+    onSidebarResize={size => localStorage.setItem('sidebar', String(size))}
+  />
+  ```
 
 ## Layout
 
@@ -122,3 +140,60 @@ A minimal layout:
 ```
 
 [Styling](./styling.mdx) lists every attribute and has a complete stylesheet.
+
+## Custom layout
+
+`renderLayout` replaces the built-in sidebar, separator and main arrangement,
+for example to stack the tree above the editor on a narrow screen or to use
+another split component. It receives:
+
+| Field       | Type        | Meaning                                                                   |
+| ----------- | ----------- | ------------------------------------------------------------------------- |
+| `sidebar`   | `ReactNode` | The tree in `[data-workbench-sidebar]`                                    |
+| `main`      | `ReactNode` | Tabs, save button, error and editor in `[data-workbench-main]`            |
+| `sidebarId` | `string`    | The `id` of `[data-workbench-sidebar]`, for a separator's `aria-controls` |
+
+Its result is rendered inside the `[data-workbench]` root, and every attribute
+inside the two regions stays the same, so the selectors in
+[Styling](./styling.mdx) keep working. Workbench then renders no separator,
+sets no sidebar width and ignores the sidebar size props; the layout sizes the
+regions.
+
+```tsx
+const isNarrow = useMediaQuery('(max-width: 640px)');
+
+<Workbench
+  adapter={adapter}
+  renderEditor={codeEditorRenderer}
+  readOnly
+  renderLayout={
+    isNarrow
+      ? ({ sidebar, main }) => (
+          <div className="stacked">
+            {sidebar}
+            {main}
+          </div>
+        )
+      : undefined
+  }
+/>;
+```
+
+```css
+.stacked {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.stacked [data-workbench-sidebar] {
+  height: 40%;
+}
+.stacked [data-workbench-main] {
+  flex: 1;
+  min-height: 0;
+}
+```
+
+Switching between layouts mounts the regions again. Open tabs and unsaved
+edits are kept, but the tree's expanded folders and the editor's undo history
+start over.

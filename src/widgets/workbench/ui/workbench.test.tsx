@@ -311,6 +311,77 @@ describe('Workbench', () => {
     expect(sidebar.style.width).toBe('15%');
   });
 
+  it('takes the sidebar limits and reports a finished resize', async () => {
+    const onSidebarResize = vi.fn();
+    const view = render(
+      <Workbench
+        adapter={createAdapter({ 'a.ts': 'a' })}
+        renderEditor={renderTextarea}
+        defaultSidebarSize={90}
+        minSidebarSize={10}
+        maxSidebarSize={60}
+        onSidebarResize={onSidebarResize}
+      />,
+    );
+
+    await screen.findByText('a.ts');
+
+    const handle = screen.getByRole('separator', { name: 'Resize file tree' });
+    const sidebar = view.container.querySelector<HTMLElement>(
+      '[data-workbench-sidebar]',
+    )!;
+
+    // A saved width outside the limits starts at the nearest limit.
+    expect(sidebar.style.width).toBe('60%');
+    expect(handle.getAttribute('aria-valuemin')).toBe('10');
+    expect(handle.getAttribute('aria-valuemax')).toBe('60');
+
+    fireEvent.keyDown(handle, { key: 'ArrowLeft' });
+
+    expect(sidebar.style.width).toBe('59%');
+    expect(onSidebarResize).toHaveBeenCalledExactlyOnceWith(59);
+
+    fireEvent.keyDown(handle, { key: 'Home' });
+    fireEvent.keyDown(handle, { key: 'Home' });
+
+    expect(sidebar.style.width).toBe('10%');
+    expect(onSidebarResize).toHaveBeenCalledTimes(2);
+  });
+
+  it('hands the sidebar and main regions to renderLayout', async () => {
+    const adapter = createAdapter({ 'a.ts': 'a' });
+    const view = render(
+      <Workbench
+        adapter={adapter}
+        renderEditor={renderTextarea}
+        colorTheme="light"
+        readOnly
+        renderLayout={({ sidebar, main, sidebarId }) => (
+          <div data-testid="layout" data-sidebar-id={sidebarId}>
+            {main}
+            {sidebar}
+          </div>
+        )}
+      />,
+    );
+
+    const editor = await openFile('a.ts');
+    const root = view.container.querySelector<HTMLElement>('[data-workbench]')!;
+    const layout = screen.getByTestId('layout');
+    const [main, sidebar] = Array.from(layout.children);
+
+    expect(root.getAttribute('data-theme')).toBe('light');
+    expect(root.hasAttribute('data-readonly')).toBe(true);
+    expect(root.firstElementChild).toBe(layout);
+    expect(main.hasAttribute('data-workbench-main')).toBe(true);
+    expect(main.contains(editor)).toBe(true);
+    expect(sidebar.hasAttribute('data-workbench-sidebar')).toBe(true);
+    expect(sidebar.id).toBe(layout.getAttribute('data-sidebar-id'));
+    // The layout owns the sizing, so there is no built-in separator or width.
+    expect((sidebar as HTMLElement).style.width).toBe('');
+    expect(screen.queryByRole('separator')).toBeNull();
+  });
+
   it('defaults to the dark theme and switches the root and editor together', async () => {
     const adapter = createAdapter({ 'a.ts': 'a' });
     const renderEditor = vi.fn<WorkbenchEditorRenderer>(props => (
