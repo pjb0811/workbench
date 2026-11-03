@@ -1,5 +1,5 @@
 export { Workbench } from '@/widgets/workbench';
-export type { WorkbenchProps } from '@/widgets/workbench';
+export type { WorkbenchLayoutProps, WorkbenchProps } from '@/widgets/workbench';
 
 export { FileTree } from '@/features/file-tree';
 export type {
