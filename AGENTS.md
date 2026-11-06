@@ -30,14 +30,14 @@ Write comments for someone reading the code now: say what the code does first, g
 
 Procedures shared by every pjb0811 repository are global Claude Code skills in the public repository [`pjb0811/skills`](https://github.com/pjb0811/skills), and the shared decisions are in its [`global/CLAUDE.md`](https://github.com/pjb0811/skills/blob/main/global/CLAUDE.md). Agents without them installed follow the summaries in this file.
 
-| Skill                                 | Use                                                                                                                                                                            |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `commit`, `pr`, `issue`               | Commit messages, PR and issue bodies                                                                                                                                           |
-| `coding-style`                        | Conventions, renames, comments (C), boolean names (D), braces (E), subcomponent file layout (F), blank lines (G), order of code inside a component (H), feature subfolders (I) |
-| `changesets-release`, `publish-check` | Release flow and pre-release checks                                                                                                                                            |
-| `shared-library-first`                | Reusable UI goes to ui-kit and hooks to use-hooks first                                                                                                                        |
-| `ref-verification`                    | Read repository state from git refs, not the worktree                                                                                                                          |
-| `repo-settings`                       | Align the repository's GitHub settings (merge methods, auto-merge, default-branch ruleset) with the standard                                                                   |
+| Skill                                 | Use                                                                                                                                                                                                  |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `commit`, `pr`, `issue`               | Commit messages, PR and issue bodies                                                                                                                                                                 |
+| `coding-style`                        | Conventions, renames, comments (C), boolean names (D), braces (E), subcomponent file layout (F), blank lines (G), order of code inside a component (H), feature subfolders (I), long class lists (J) |
+| `changesets-release`, `publish-check` | Release flow and pre-release checks                                                                                                                                                                  |
+| `shared-library-first`                | Reusable UI goes to ui-kit and hooks to use-hooks first                                                                                                                                              |
+| `ref-verification`                    | Read repository state from git refs, not the worktree                                                                                                                                                |
+| `repo-settings`                       | Align the repository's GitHub settings (merge methods, auto-merge, default-branch ruleset) with the standard                                                                                         |
 
 ### Commit messages
 
