@@ -99,7 +99,7 @@
     "@eslint/js": "^10.0.1",
     "@iconify-json/vscode-icons": "^1.2.90",
     "@iconify/react": "^6.0.2",
-    "@jbpark/ui-kit": "^10.4.0",
+    "@jbpark/ui-kit": "^10.7.0",
     "@microsoft/api-extractor": "^7.58.12",
     "@testing-library/react": "^16.3.3",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
